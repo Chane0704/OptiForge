@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from optiforge import __version__
 
-CURRENT_VERSION = __version__
+CURRENT_VERSION = os.environ.get("OPTIFORGE_VERSION_OVERRIDE", __version__)
 REPO = "Chane0704/OptiForge"
 
 
