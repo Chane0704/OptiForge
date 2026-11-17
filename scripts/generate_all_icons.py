@@ -1,143 +1,142 @@
-"""Generates multi-resolution icons (16, 24, 32, 48, 64, 128, 256), PNG, and SVG for OptiForge.
+"""Generates multi-resolution icons (16, 20, 24, 32, 40, 48, 64, 128, 256), PNG, and SVG for OptiForge.
 
-Matches the Warm Editorial brand: terracotta copper anvil emblem with ivory spark
-on warm charcoal umber squircle. Highly legible at 16px and 32px.
+Uses the beloved 8-spoke radial sunburst / loading-wheel emblem:
+Terracotta copper rays (#c25738 / #e06c4c) with rounded caps on a dark warm charcoal umber squircle (#1c1917).
+Ultra-crisp at all resolutions from 16px taskbar to 256px desktop.
 """
 
+import math
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def draw_artisan_mark(size: int) -> Image.Image:
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    s = size / 256.0
+TERRACOTTA = (224, 108, 76, 255)       # #e06c4c vibrant terracotta
+TERRACOTTA_DEEP = (194, 87, 56, 255)  # #c25738 deep copper
+BG_COLOR = (26, 23, 21, 255)          # #1a1715 deep charcoal umber
+BORDER_COLOR = (194, 87, 56, 180)     # Subtle copper rim
 
-    # 1. Squircle Background: Deep Warm Charcoal Umber (#1c1917)
-    pad = max(1, int(10 * s))
-    radius = max(3, int(54 * s))
-    border_w = max(1, int(4 * s))
+def render_radial_wheel(size: int) -> Image.Image:
+    # Render at 4x supersampling for buttery smooth anti-aliased rounded line caps
+    supersample = 4
+    canvas_size = size * supersample
+    img = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    s = canvas_size / 256.0
+
+    # 1. Dark squircle background
+    pad = int(12 * s)
+    radius = int(52 * s)
+    border_w = max(1, int(3.5 * s))
+
     draw.rounded_rectangle(
-        [pad, pad, size - pad, size - pad],
+        [pad, pad, canvas_size - pad, canvas_size - pad],
         radius=radius,
-        fill=(28, 25, 23, 255),
-        outline=(194, 87, 56, 220), # Warm terracotta border
+        fill=BG_COLOR,
+        outline=BORDER_COLOR,
         width=border_w
     )
 
-    # 2. For 16px and 24px: High-contrast pixel-aligned geometry
+    # 2. Draw 8 radial tick spokes (The loading-wheel sunburst emblem)
+    center = canvas_size / 2.0
+    r_inner = 38.0 * s
+    r_outer = 82.0 * s
+    line_width = max(2, int(15.0 * s))
+
+    # For 16px / 24px: optimize thickness so spokes don't blend together
     if size <= 24:
-        # Simplified crisp anvil base + face for extreme low-res legibility
-        b_pad = max(2, int(size * 0.2))
-        draw.rectangle([b_pad, int(size * 0.65), size - b_pad, int(size * 0.82)], fill=(194, 87, 56, 255))
-        draw.rectangle([b_pad + 1, int(size * 0.45), size - b_pad - 1, int(size * 0.62)], fill=(224, 108, 76, 255))
-        # Center spark point
-        cx = size // 2
-        draw.point((cx, int(size * 0.25)), fill=(245, 243, 239, 255))
-        draw.point((cx, int(size * 0.32)), fill=(245, 243, 239, 255))
-        return img
+        r_inner = 34.0 * s
+        r_outer = 86.0 * s
+        line_width = max(supersample * 2, int(18.0 * s))
 
-    # 3. For 32px and above: Detailed geometric craft anvil + precision spark
-    # Inner subtle hairline
-    if size >= 48:
-        in_pad = int(22 * s)
-        draw.rounded_rectangle(
-            [in_pad, in_pad, size - in_pad, size - in_pad],
-            radius=int(42 * s),
-            outline=(245, 243, 239, 30),
-            width=max(1, int(1.5 * s))
-        )
+    # 8 spokes at 0, 45, 90, 135, 180, 225, 270, 315 degrees
+    # Slight top-down subtle gradient: top spokes slightly brighter terracotta
+    for angle_deg in range(0, 360, 45):
+        rad = math.radians(angle_deg)
+        cos_a = math.cos(rad)
+        sin_a = math.sin(rad)
 
-    # Anvil Base (#c25738)
-    anvil_base = [
-        (int(64 * s), int(185 * s)),
-        (int(192 * s), int(185 * s)),
-        (int(174 * s), int(160 * s)),
-        (int(82 * s), int(160 * s))
-    ]
-    draw.polygon(anvil_base, fill=(194, 87, 56, 255))
+        x1 = center + r_inner * cos_a
+        y1 = center + r_inner * sin_a
+        x2 = center + r_outer * cos_a
+        y2 = center + r_outer * sin_a
 
-    # Anvil Waist / Body (#a8472c)
-    anvil_body = [
-        (int(92 * s), int(160 * s)),
-        (int(164 * s), int(160 * s)),
-        (int(156 * s), int(134 * s)),
-        (int(100 * s), int(134 * s))
-    ]
-    draw.polygon(anvil_body, fill=(168, 71, 44, 255))
+        # Top rays have a warm highlight, bottom have deep copper tone
+        t = (math.sin(rad) + 1.0) / 2.0  # 0 at top, 1 at bottom
+        r_col = int(230 - 20 * t)
+        g_col = int(115 - 25 * t)
+        b_col = int(82 - 20 * t)
+        color = (r_col, g_col, b_col, 255)
 
-    # Anvil Horn & Top Face (#e06c4c)
-    anvil_top = [
-        (int(52 * s), int(134 * s)),
-        (int(188 * s), int(134 * s)),
-        (int(204 * s), int(116 * s)),
-        (int(178 * s), int(110 * s)),
-        (int(68 * s), int(110 * s))
-    ]
-    draw.polygon(anvil_top, fill=(224, 108, 76, 255))
+        # Draw spoke line with rounded ends
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=line_width)
 
-    # Precision Craft Spark (#faf8f5 ivory outer, #c25738 core)
-    spark_outer = [
-        (int(128 * s), int(42 * s)),
-        (int(148 * s), int(78 * s)),
-        (int(140 * s), int(104 * s)),
-        (int(128 * s), int(96 * s)),
-        (int(116 * s), int(104 * s)),
-        (int(108 * s), int(78 * s))
-    ]
-    draw.polygon(spark_outer, fill=(245, 243, 239, 255))
+        # Draw rounded caps
+        cap_r = line_width / 2.0
+        draw.ellipse([x1 - cap_r, y1 - cap_r, x1 + cap_r, y1 + cap_r], fill=color)
+        draw.ellipse([x2 - cap_r, y2 - cap_r, x2 + cap_r, y2 + cap_r], fill=color)
 
-    spark_inner = [
-        (int(128 * s), int(56 * s)),
-        (int(138 * s), int(80 * s)),
-        (int(128 * s), int(92 * s)),
-        (int(118 * s), int(80 * s))
-    ]
-    draw.polygon(spark_inner, fill=(194, 87, 56, 255))
+    # Downsample with high-quality Lanczos resampling
+    final = img.resize((size, size), Image.Resampling.LANCZOS)
+    return final
 
-    return img
+
+def generate_svg() -> str:
+    """Produces the exact vector SVG matching the loading wheel icon."""
+    return '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect width="232" height="232" x="12" y="12" rx="52" fill="#1a1715" stroke="#c25738" stroke-width="3" stroke-opacity="0.7"/>
+  <g transform="translate(128, 128)" stroke="#e06c4c" stroke-width="15" stroke-linecap="round">
+    <!-- 8 Radial Spokes -->
+    <line x1="0" y1="-38" x2="0" y2="-82" stroke="#e87856"/>
+    <line x1="26.87" y1="-26.87" x2="57.98" y2="-57.98" stroke="#e47150"/>
+    <line x1="38" y1="0" x2="82" y2="0" stroke="#de6846"/>
+    <line x1="26.87" y1="26.87" x2="57.98" y2="57.98" stroke="#d65f3e"/>
+    <line x1="0" y1="38" x2="0" y2="82" stroke="#ce5838"/>
+    <line x1="-26.87" y1="26.87" x2="-57.98" y2="57.98" stroke="#d65f3e"/>
+    <line x1="-38" y1="0" x2="-82" y2="0" stroke="#de6846"/>
+    <line x1="-26.87" y1="-26.87" x2="-57.98" y2="-57.98" stroke="#e47150"/>
+  </g>
+</svg>
+'''
 
 
 def main():
-    sizes = [256, 128, 64, 48, 32, 24, 16]
-    images = [draw_artisan_mark(s) for s in sizes]
+    print("🎨 Generating OptiForge loading-wheel radial icons...")
 
-    # Save multi-res optiforge.ico
-    ico_dest = ROOT / "optiforge.ico"
-    images[0].save(
-        str(ico_dest),
-        format="ICO",
-        sizes=[(s, s) for s in sizes],
-        append_images=images[1:]
-    )
-    print(f"✓ Saved multi-resolution {ico_dest} (Sizes: {sizes})")
+    # Resolutions for Windows ICO
+    sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
+    images = [render_radial_wheel(s) for s in sizes]
 
-    # Save 256x256 PNG
-    png_dest = ROOT / "optiforge.png"
-    images[0].save(str(png_dest), format="PNG")
-    print(f"✓ Saved 256x256 PNG: {png_dest}")
-
-    # Also copy to static folder for favicon and web
-    static_ico = ROOT / "optiforge" / "app" / "static" / "optiforge.ico"
+    # 1. Master PNG (256x256)
+    master_png = images[-1]
+    master_png.save(ROOT / "optiforge.png", "PNG")
     static_png = ROOT / "optiforge" / "app" / "static" / "optiforge.png"
-    images[0].save(str(static_ico), format="ICO", sizes=[(s, s) for s in sizes], append_images=images[1:])
-    images[0].save(str(static_png), format="PNG")
-    print("✓ Copied icon and PNG to static assets directory.")
+    static_png.parent.mkdir(parents=True, exist_ok=True)
+    master_png.save(static_png, "PNG")
+    print(f"✓ Saved {ROOT / 'optiforge.png'}")
 
-    # Save SVG version
-    svg_content = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <rect x="10" y="10" width="236" height="236" rx="54" fill="#1c1917" stroke="#c25738" stroke-width="4"/>
-  <rect x="22" y="22" width="212" height="212" rx="42" fill="none" stroke="#f5f3ef" stroke-width="1.5" stroke-opacity="0.12"/>
-  <polygon points="64,185 192,185 174,160 82,160" fill="#c25738"/>
-  <polygon points="92,160 164,160 156,134 100,134" fill="#a8472c"/>
-  <polygon points="52,134 188,134 204,116 178,110 68,110" fill="#e06c4c"/>
-  <polygon points="128,42 148,78 140,104 128,96 116,104 108,78" fill="#f5f3ef"/>
-  <polygon points="128,56 138,80 128,92 118,80" fill="#c25738"/>
-</svg>'''
-    svg_dest = ROOT / "optiforge.svg"
-    svg_dest.write_text(svg_content, encoding="utf-8")
-    print(f"✓ Saved vector SVG: {svg_dest}")
+    # 2. Multi-Resolution Windows ICO
+    ico_destinations = [
+        ROOT / "optiforge.ico",
+        ROOT / "optiforge" / "app" / "static" / "optiforge.ico",
+    ]
+    for dest in ico_destinations:
+        images[-1].save(
+            dest,
+            format="ICO",
+            sizes=[(s, s) for s in sizes],
+            append_images=images[:-1]
+        )
+        print(f"✓ Saved {dest} (sizes: {sizes})")
+
+    # 3. Vector SVG
+    svg_content = generate_svg()
+    (ROOT / "optiforge.svg").write_text(svg_content, encoding="utf-8")
+    (ROOT / "optiforge" / "app" / "static" / "optiforge.svg").write_text(svg_content, encoding="utf-8")
+    print(f"✓ Saved SVG at {ROOT / 'optiforge.svg'}")
+
+    print("\n🎉 Loading-wheel icons generated successfully!")
 
 
 if __name__ == "__main__":
