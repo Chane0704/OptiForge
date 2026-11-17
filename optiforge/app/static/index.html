@@ -1,1050 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OptiForge — Universal Performance & Efficiency</title>
-    <style>
-        :root {
-            --bg-body: #0b0f19;
-            --bg-card: #151d2f;
-            --bg-card-hover: #1b263d;
-            --bg-input: #080c14;
-            --border-color: #26334d;
-            --text-main: #f1f5f9;
-            --text-sub: #94a3b8;
-            --accent-cyan: #38bdf8;
-            --accent-green: #34d399;
-            --accent-yellow: #fbbf24;
-            --accent-red: #f87171;
-            --accent-purple: #c084fc;
-            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%);
-            --radius-lg: 16px;
-            --radius-md: 10px;
-            --radius-sm: 6px;
-        }
-
-        body.light-theme {
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f1f5f9;
-            --bg-input: #f8fafc;
-            --border-color: #e2e8f0;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --accent-cyan: #0284c7;
-            --accent-green: #059669;
-            --accent-yellow: #d97706;
-            --accent-red: #dc2626;
-            --accent-purple: #9333ea;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.15s ease, border-color 0.15s ease; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.5;
-        }
-
-        /* Top Navigation Bar */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 32px;
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--accent-cyan);
-            letter-spacing: -0.02em;
-            cursor: pointer;
-        }
-        .brand span { color: var(--text-main); font-weight: 500; font-size: 14px; margin-left: 6px; }
-        .nav-controls { display: flex; align-items: center; gap: 12px; }
-
-        .btn-icon {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-sub);
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-icon:hover { color: var(--text-main); border-color: var(--accent-cyan); }
-
-        /* Container */
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 32px 20px;
-            width: 100%;
-            flex: 1;
-        }
-
-        /* Walkthrough Tracker */
-        .walkthrough {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-        .step-pill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-sub);
-            padding: 6px 14px;
-            border-radius: 20px;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-        }
-        .step-pill.active {
-            color: var(--accent-cyan);
-            border-color: var(--accent-cyan);
-            background-color: rgba(56, 189, 248, 0.08);
-        }
-        .step-arrow { color: var(--text-sub); font-size: 12px; }
-
-        /* Home Screen */
-        .hero-section { text-align: center; margin-bottom: 28px; }
-        .hero-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
-        .hero-desc { color: var(--text-sub); font-size: 16px; max-width: 600px; margin: 0 auto; }
-
-        .dropzone {
-            background-color: var(--bg-card);
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 40px 24px;
-            text-align: center;
-            cursor: pointer;
-            position: relative;
-            margin-bottom: 24px;
-            transition: all 0.2s ease;
-        }
-        .dropzone:hover, .dropzone.drag-active {
-            border-color: var(--accent-cyan);
-            background-color: var(--bg-card-hover);
-        }
-        .drop-icon { font-size: 48px; margin-bottom: 12px; }
-        .drop-prompt { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-        .drop-sub { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
-
-        .button-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
-        .btn-action {
-            background-color: var(--bg-input);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 10px 18px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-action:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
-
-        .text-input-box {
-            width: 100%;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 14px 16px;
-            color: var(--text-main);
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            resize: vertical;
-            min-height: 80px;
-            margin-bottom: 16px;
-        }
-        .text-input-box:focus { border-color: var(--accent-cyan); }
-
-        .detected-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background-color: rgba(56, 189, 248, 0.12);
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .btn-primary {
-            background: var(--accent-gradient);
-            color: #ffffff;
-            border: none;
-            padding: 14px 32px;
-            border-radius: var(--radius-md);
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
-        }
-        .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        /* Results Screen */
-        .results-header {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            display: flex;
-            gap: 24px;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        @media (max-width: 720px) { .results-header { flex-direction: column; text-align: center; } }
-
-        .score-circle {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            border: 8px solid var(--accent-cyan);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .score-num { font-size: 32px; font-weight: 900; line-height: 1; }
-        .score-denom { font-size: 12px; color: var(--text-sub); }
-
-        .header-content { flex: 1; }
-        .headline-text { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
-        .headline-sub { font-size: 14px; color: var(--text-sub); margin-bottom: 16px; }
-
-        .action-row { display: flex; gap: 12px; flex-wrap: wrap; }
-        .btn-fix {
-            background-color: var(--accent-green);
-            color: #ffffff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-fix:hover { opacity: 0.92; }
-
-        .btn-ai-prompt {
-            background-color: rgba(192, 132, 252, 0.15);
-            border: 1px solid var(--accent-purple);
-            color: var(--accent-purple);
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-ai-prompt:hover { background-color: rgba(192, 132, 252, 0.25); }
-
-        .btn-undo {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-sub);
-            padding: 10px 16px;
-            border-radius: var(--radius-md);
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .btn-undo:hover { color: var(--text-main); border-color: var(--accent-yellow); }
-
-        /* Savings Bar */
-        .savings-bar-container {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 16px 20px;
-            margin-bottom: 24px;
-        }
-        .savings-bar-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-        .progress-track { height: 12px; background-color: var(--bg-input); border-radius: 6px; overflow: hidden; display: flex; }
-        .progress-fill { height: 100%; background: var(--accent-gradient); width: 68%; }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-        .tab-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-sub);
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .tab-btn.active { background-color: var(--bg-card); color: var(--text-main); }
-
-        /* Finding Card */
-        .card-list { display: flex; flex-direction: column; gap: 14px; }
-        .finding-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 20px;
-        }
-        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px; }
-        .card-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
-        .card-badges { display: flex; gap: 8px; align-items: center; }
-
-        .badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-        .badge-safe { background-color: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        .badge-likely { background-color: rgba(192, 132, 252, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple); }
-        .badge-careful { background-color: rgba(248, 113, 113, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
-        .badge-gain { background-color: rgba(56, 189, 248, 0.12); color: var(--accent-cyan); }
-
-        .card-why { font-size: 14px; color: var(--text-sub); margin-bottom: 8px; }
-        .card-todo { font-size: 13px; color: var(--text-main); background: var(--bg-input); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; }
-
-        .card-actions { display: flex; justify-content: space-between; align-items: center; }
-        .action-group { display: flex; gap: 8px; }
-        .btn-sm {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-sub);
-            padding: 6px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-sm:hover { color: var(--text-main); border-color: var(--accent-cyan); }
-        .btn-sm.primary { background-color: var(--accent-green); color: #fff; border: none; }
-        .btn-sm.ai { border-color: var(--accent-purple); color: var(--accent-purple); }
-
-        .advanced-expander {
-            font-size: 12px;
-            color: var(--text-sub);
-            margin-top: 10px;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .advanced-box {
-            margin-top: 10px;
-            padding: 12px;
-            background: var(--bg-input);
-            border-radius: var(--radius-sm);
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--text-sub);
-            white-space: pre-wrap;
-            display: none;
-        }
-
-        /* Modal Overlays */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-
-        .modal-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            max-width: 650px;
-            width: 100%;
-            padding: 24px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .modal-title { font-size: 18px; font-weight: 800; color: var(--accent-cyan); }
-        .close-btn { background: none; border: none; font-size: 20px; color: var(--text-sub); cursor: pointer; }
-
-        .shield-notice {
-            background: rgba(52, 211, 153, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-            padding: 10px 14px;
-            border-radius: var(--radius-md);
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .prompt-preview {
-            width: 100%;
-            height: 220px;
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--text-main);
-            overflow-y: auto;
-            white-space: pre-wrap;
-            margin-bottom: 16px;
-        }
-
-        .radio-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-        .radio-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
-
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--accent-green);
-            color: #ffffff;
-            padding: 12px 24px;
-            border-radius: var(--radius-md);
-            font-weight: 700;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            display: none;
-            z-index: 2000;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptiForge — Universal Performance & Efficiency</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="brand" onclick="goHome()">
-            ⚡ OptiForge
-            <span>Desktop</span>
-        </div>
-        <div class="nav-controls">
-            <button class="btn-icon" onclick="openWalkthrough()">❓ How it Works</button>
-            <button class="btn-icon" onclick="toggleTheme()" id="theme-btn">☀️ Light</button>
-            <button class="btn-icon" onclick="openSettings()">⚙️ Settings</button>
-        </div>
-    </nav>
 
-    <div class="container">
-        <!-- 3-Step Walkthrough Header -->
-        <div class="walkthrough">
-            <div class="step-pill active" id="step-1">1. Add Project</div>
-            <div class="step-arrow">➔</div>
-            <div class="step-pill" id="step-2">2. See Savings</div>
-            <div class="step-arrow">➔</div>
-            <div class="step-pill" id="step-3">3. Fix or Hand to AI</div>
-        </div>
-
-        <!-- SCREEN 1: ADD YOUR PROJECT -->
-        <div id="home-screen">
-            <div class="hero-section">
-                <h1 class="hero-title">Make Your Software Faster & Lighter</h1>
-                <p class="hero-desc">Analyze code, folders, websites, or pictures in seconds. No terminal required.</p>
-            </div>
-
-            <div class="dropzone" id="drop-area" onclick="triggerFolderSelect()">
-                <div class="drop-icon">📂</div>
-                <div class="drop-prompt">Drag & drop your project folder, files, or pictures here</div>
-                <div class="drop-sub">Or use one of the quick picker buttons below</div>
-
-                <div class="button-row" onclick="event.stopPropagation()">
-                    <button class="btn-action" onclick="triggerFolderSelect()">📁 Select Folder</button>
-                    <button class="btn-action" onclick="triggerFileSelect()">📄 Select Files</button>
-                    <button class="btn-action" onclick="triggerImageSelect()">🖼️ Add Pictures</button>
-                </div>
-            </div>
-
-            <div style="margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-sub);">
-                Or paste code, config, or website link:
-            </div>
-            <textarea id="text-input" class="text-input-box" placeholder="https://mywebsite.com  OR  paste HTML, JavaScript, Python code, etc..."></textarea>
-
-            <div id="detected-container" style="display: none;">
-                <div class="detected-badge" id="detected-pill">
-                    📁 Detected: Web Project Folder (sample_bloated_project)
-                </div>
-            </div>
-
-            <button class="btn-primary" id="btn-analyze" onclick="startAnalysis()">
-                ⚡ Optimize My Project
-            </button>
-        </div>
-
-        <!-- SCREEN 2: RESULTS SCREEN -->
-        <div id="results-screen" style="display: none;">
-            <div style="margin-bottom: 16px;">
-                <button class="btn-icon" onclick="goHome()">← Back to Add Project</button>
-            </div>
-
-            <div class="results-header">
-                <div class="score-circle">
-                    <div class="score-num" id="res-score">78</div>
-                    <div class="score-denom">HEALTH SCORE</div>
-                </div>
-                <div class="header-content">
-                    <div class="headline-text" id="res-headline">Your project could be 2.6 MB smaller and load faster!</div>
-                    <div class="headline-sub" id="res-sub">We found 4 quick improvements that are safe to apply right away.</div>
-                    <div class="action-row">
-                        <button class="btn-fix" onclick="openFixModal()">⚡ Let OptiForge fix the safe stuff</button>
-                        <button class="btn-ai-prompt" onclick="openAIPromptModal()">🤖 Copy prompt for my AI agent</button>
-                        <button class="btn-undo" onclick="triggerRollback()">↩ Undo Last Fix</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="savings-bar-container">
-                <div class="savings-bar-label">
-                    <span>Current Size: <strong id="lbl-current">3.8 MB</strong></span>
-                    <span>After Optimization: <strong id="lbl-optimized" style="color: var(--accent-green);">1.2 MB</strong></span>
-                    <span style="color: var(--accent-cyan);"><strong id="lbl-saved">Saves 2.6 MB (68%)</strong></span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" id="bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="tabs">
-                <button class="tab-btn active" id="tab-quick" onclick="switchTab('quick')">⚡ Quick Wins (<span id="cnt-quick">0</span>)</button>
-                <button class="tab-btn" id="tab-worth" onclick="switchTab('worth')">🛠️ Worth Doing (<span id="cnt-worth">0</span>)</button>
-                <button class="tab-btn" id="tab-opt" onclick="switchTab('optional')">💡 Optional (<span id="cnt-opt">0</span>)</button>
-            </div>
-
-            <div class="card-list" id="cards-container">
-                <!-- Dynamically populated cards -->
-            </div>
-        </div>
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="brand-group" onclick="showHomeScreen()">
+      <div class="brand-emblem">
+        <!-- Artisan Forge Emblem SVG -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+      </div>
+      <span class="brand-title">OptiForge</span>
+      <span class="brand-tag">Local Engine</span>
     </div>
 
-    <!-- MODAL: COPY PROMPT FOR AI AGENT -->
-    <div class="modal-overlay" id="modal-ai-prompt">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🤖 Copy Prompt for My AI Agent</div>
-                <button class="close-btn" onclick="closeAIPromptModal()">&times;</button>
-            </div>
-
-            <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 14px;">
-                Works with <strong>Antigravity, Claude Code, Cursor, ChatGPT</strong>, and other coding assistants.
-            </p>
-
-            <div class="shield-notice" id="shield-badge">
-                🛡️ All API keys, passwords, and secrets have been automatically redacted.
-            </div>
-
-            <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Select AI Task Mode:</div>
-            <div class="radio-group">
-                <label class="radio-label">
-                    <input type="radio" name="prompt-mode" value="fix_safe" checked onchange="refreshPromptPreview()">
-                    <span><strong>Fix only the safe stuff</strong> (Zero risk of breaking things)</span>
-                </label>
-                <label class="radio-label">
-                    <input type="radio" name="prompt-mode" value="fix_all" onchange="refreshPromptPreview()">
-                    <span><strong>Fix everything found</strong> (Full refactor & cleanup)</span>
-                </label>
-                <label class="radio-label">
-                    <input type="radio" name="prompt-mode" value="explain" onchange="refreshPromptPreview()">
-                    <span><strong>Explain each fix step-by-step</strong> (For learning & review)</span>
-                </label>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 13px; font-weight: 700;">Prompt Preview:</span>
-                <label style="font-size: 12px; color: var(--text-sub); cursor: pointer;">
-                    <input type="checkbox" id="chk-short" onchange="refreshPromptPreview()"> Short & concise format
-                </label>
-            </div>
-
-            <textarea id="prompt-box" class="prompt-preview" readonly></textarea>
-
-            <div class="button-row" style="justify-content: flex-end;">
-                <button class="btn-action" onclick="savePromptAsFile()">💾 Save as .md file</button>
-                <button class="btn-primary" style="width: auto;" onclick="copyPromptToClipboard()">📋 Copy Prompt to Clipboard</button>
-            </div>
-        </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="openWalkthroughModal()" title="Quick start guide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Guide
+      </button>
+      <button class="icon-btn" onclick="openSettingsModal()" title="Application settings & privacy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Settings
+      </button>
+      <button class="icon-btn" id="theme-toggle-btn" onclick="toggleAppTheme()" title="Switch theme">
+        <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span id="theme-text">Theme</span>
+      </button>
     </div>
+  </header>
 
-    <!-- MODAL: SAFE FIX PREVIEW & CONFIRMATION -->
-    <div class="modal-overlay" id="modal-fix-confirm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">⚡ Safe Auto-Fix Preview</div>
-                <button class="close-btn" onclick="closeFixModal()">&times;</button>
-            </div>
+  <main class="app-container">
 
-            <div class="shield-notice">
-                🛡️ <strong>Safety Guarantee:</strong> An atomic snapshot backup will be created before touching any files. Obsolete files are moved to quarantine, never deleted. You can undo anytime with 1 click.
-            </div>
+    <!-- ====================================================================
+         SCREEN 1: Home / Add Project
+         ==================================================================== -->
+    <section id="screen-home" class="home-section">
+      <div class="hero-block">
+        <h1 class="hero-title">Drop in a project. We'll show you what's slowing it down.</h1>
+        <p class="hero-subtitle">
+          Analyze folders, code repositories, oversized images, or enter a website URL. Everything runs 100% locally on your machine with zero data transmission.
+        </p>
+      </div>
 
-            <p style="font-size: 14px; margin-bottom: 12px;">OptiForge will apply the following safe optimizations:</p>
-            <div id="fix-preview-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; background: var(--bg-input); padding: 12px; border-radius: var(--radius-sm); font-size: 13px;">
-                Loading preview...
-            </div>
-
-            <div class="button-row" style="justify-content: flex-end;">
-                <button class="btn-action" onclick="closeFixModal()">Cancel</button>
-                <button class="btn-fix" onclick="executeSafeFix()">Apply Optimizations</button>
-            </div>
+      <!-- Main Drag & Drop Zone -->
+      <div class="dropzone" id="drop-area" onclick="triggerFolderSelect()">
+        <div class="dropzone-icon-box">
+          <!-- Pure Lucide SVG line icon (Upload / Folder) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+            <path d="M12 10v6m-3-3 3-3 3 3"/>
+          </svg>
         </div>
-    </div>
+        <div class="dropzone-heading">Drag and drop your project here</div>
+        <div class="dropzone-hint">Folders, files, or pictures. Or select an option below:</div>
 
-    <!-- MODAL: SETTINGS -->
-    <div class="modal-overlay" id="modal-settings">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">⚙️ Settings</div>
-                <button class="close-btn" onclick="closeSettings()">&times;</button>
-            </div>
-
-            <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">🧠 Optional AI Assistant (OFF by default)</div>
-            <div class="shield-notice" style="color: var(--text-main); border-color: var(--border-color); background: var(--bg-input);">
-                🔒 <strong>Privacy Notice:</strong> By default, OptiForge is 100% offline. No code or data leaves your computer. If you enable AI mode, snippets are only sent when you explicitly ask for an AI explanation.
-            </div>
-
-            <label class="radio-label" style="margin-bottom: 12px;">
-                <input type="checkbox" id="chk-ai-enabled" onchange="toggleAIInputs()">
-                <span>Enable AI Explanations & Screenshot Vision</span>
-            </label>
-
-            <div id="ai-key-section" style="display: none; margin-bottom: 16px;">
-                <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 6px;">Google Gemini API Key:</div>
-                <input type="password" id="txt-api-key" class="text-input-box" style="min-height: 40px;" placeholder="AIzaSy...">
-            </div>
-
-            <div class="button-row" style="justify-content: flex-end;">
-                <button class="btn-primary" style="width: auto;" onclick="saveSettings()">Save Settings</button>
-            </div>
+        <div class="dropzone-actions" onclick="event.stopPropagation()">
+          <button class="btn-primary" onclick="triggerFolderSelect()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+            Choose Folder
+          </button>
+          <button class="btn-secondary" onclick="triggerFileSelect()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Select Files
+          </button>
+          <button class="btn-secondary" onclick="triggerImageSelect()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            Add Images
+          </button>
         </div>
+
+        <!-- Hidden input elements -->
+        <input type="file" id="file-input-folder" webkitdirectory directory multiple style="display:none;" onchange="handleFileChosen(event)">
+        <input type="file" id="file-input-files" multiple style="display:none;" onchange="handleFileChosen(event)">
+        <input type="file" id="file-input-images" accept="image/*" multiple style="display:none;" onchange="handleFileChosen(event)">
+      </div>
+
+      <!-- Alternative Input: URL or Code Snippet -->
+      <div class="input-row">
+        <div class="input-field-wrapper">
+          <div class="input-icon-prefix">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+          </div>
+          <input type="text" id="target-input-text" class="text-input" placeholder="Or enter a website URL (e.g. https://example.com) or paste a file path..." onkeydown="if(event.key==='Enter') startAnalysisFromInput()">
+        </div>
+        <button class="btn-secondary" onclick="startAnalysisFromInput()">
+          Analyze
+        </button>
+      </div>
+
+      <!-- Supported Targets Strip & Quick Sample Link -->
+      <div class="feature-strip">
+        <span class="feature-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Python, Node.js, TS
+        </span>
+        <span class="feature-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          PNG, JPEG, WebP
+        </span>
+        <span class="feature-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+          Websites & URLs
+        </span>
+        <span class="feature-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Safe Auto-Fix
+        </span>
+        <button class="sample-link" onclick="analyzeSampleProject()">
+          Try with sample bloated project &rarr;
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SCREEN 2: Analyzing / Progress State
+         ==================================================================== -->
+    <section id="screen-analyzing" class="home-section" style="display:none;">
+      <div class="analyzing-box">
+        <h2 class="analyzing-title">Analyzing your project...</h2>
+        <p class="analyzing-subtitle" id="analyzing-status-text">
+          Inspecting dependencies, code structure, assets, and runtime performance.
+        </p>
+
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+
+        <div class="step-checklist">
+          <div class="step-item active" id="step-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Detecting project structure and assets</span>
+          </div>
+          <div class="step-item" id="step-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Auditing dependencies & unused dead code</span>
+          </div>
+          <div class="step-item" id="step-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Checking image compression & duplicates</span>
+          </div>
+          <div class="step-item" id="step-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Prioritizing high-impact quick wins</span>
+          </div>
+        </div>
+
+        <button class="btn-ghost" onclick="cancelAnalysis()">Cancel</button>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         SCREEN 3: Results Overview & Grouped Findings
+         ==================================================================== -->
+    <section id="screen-results" style="display:none;">
+      
+      <!-- Hero Scorecard -->
+      <div class="results-header-card">
+        <div class="results-hero-row">
+          <div class="results-hero-left">
+            <div class="results-meta-label">Optimization Overview</div>
+            <h2 class="results-headline" id="res-summary-headline">
+              Your project could be 2.4 MB smaller and load faster.
+            </h2>
+            <div class="results-subtext">
+              Target: <span class="results-target-pill" id="res-target-name">sample_bloated_project</span> &bull;
+              <span id="res-findings-count">8</span> findings prioritized by ROI
+            </div>
+          </div>
+
+          <!-- Health Score -->
+          <div class="score-badge-card">
+            <div class="score-text-group">
+              <div class="score-label">Health Score</div>
+              <div class="score-number tabular" id="res-health-score">
+                82<span class="score-denom">/100</span>
+              </div>
+            </div>
+            <div class="score-ring tabular" id="res-health-ring">82%</div>
+          </div>
+        </div>
+
+        <!-- Savings Accounting Strip -->
+        <div class="metrics-strip">
+          <div>
+            <span class="metric-col-label">Potential Space Saved</span>
+            <span class="metric-col-val tabular" id="res-savings-mb">2.42 MB</span>
+          </div>
+          <div>
+            <span class="metric-col-label">Load Time Gain</span>
+            <span class="metric-col-val tabular" id="res-speed-gain">~420 ms</span>
+          </div>
+          <div>
+            <span class="metric-col-label">Safe to Auto-Fix</span>
+            <span class="metric-col-val safe-accent tabular" id="res-safe-fixes">5 items</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="action-toolbar">
+        <div class="action-buttons-group">
+          <button class="btn-primary" id="btn-fix-safe" onclick="openFixPreviewModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Let OptiForge fix safe items (<span id="res-btn-fix-count">5</span>)
+          </button>
+          <button class="btn-secondary" onclick="openPromptModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copy prompt for AI agent
+          </button>
+        </div>
+
+        <button class="btn-ghost" onclick="showHomeScreen()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          New analysis
+        </button>
+      </div>
+
+      <!-- Findings List -->
+      <div id="findings-container">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ====================================================================
+       SCREEN 4: AI Prompt Hand-off Modal
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-prompt" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Prompt for Your AI Coding Agent</h3>
+          <p class="text-xs text-muted" style="margin-top:2px;">Works in Claude Code, Antigravity, Cursor, ChatGPT, and any assistant.</p>
+        </div>
+        <button class="btn-ghost" onclick="closePromptModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Prompt Mode Tabs -->
+        <div class="mode-tabs">
+          <button class="mode-tab-btn active" id="mode-tab-fix_safe" onclick="setPromptMode('fix_safe')">Fix safe items only</button>
+          <button class="mode-tab-btn" id="mode-tab-fix_all" onclick="setPromptMode('fix_all')">Fix everything</button>
+          <button class="mode-tab-btn" id="mode-tab-explain" onclick="setPromptMode('explain')">Explain step-by-step</button>
+        </div>
+
+        <!-- Detail Level Switcher -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:12px;">
+          <span style="color:var(--text-muted);">Instruction detail:</span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-ghost btn-sm" id="btn-detail-detailed" style="font-weight:600;" onclick="setPromptDetail('detailed')">Detailed</button>
+            <button class="btn-ghost btn-sm" id="btn-detail-concise" onclick="setPromptDetail('concise')">Concise</button>
+          </div>
+        </div>
+
+        <!-- Secret Redaction Security Banner -->
+        <div class="redaction-banner" id="redaction-notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>
+          <span>Redacted by default: Passwords, API keys, and environment secrets are never included.</span>
+        </div>
+
+        <!-- Prompt Textarea -->
+        <textarea id="prompt-output" class="prompt-code-area" readonly spellcheck="false"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="savePromptAsMarkdown()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Save as .md
+        </button>
+        <button class="btn-primary" onclick="copyPromptToClipboard()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          Copy to Clipboard
+        </button>
+      </div>
     </div>
+  </div>
 
-    <div class="toast" id="toast">Copied to clipboard!</div>
 
-    <script>
-        let currentAnalysis = null;
-        let activeTab = "quick";
-        let detectedTarget = "sample_bloated_project";
+  <!-- ====================================================================
+       SCREEN 5: Fix Preview & Rollback Modal
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-fix-preview" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Review Safe Optimizations</h3>
+          <p class="text-xs text-muted" style="margin-top:2px;">Atomic pre-fix backup snapshot created before touching any file.</p>
+        </div>
+        <button class="btn-ghost" onclick="closeFixPreviewModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-        // Drag and Drop support
-        const dropArea = document.getElementById("drop-area");
-        ["dragenter", "dragover"].forEach(ev => {
-            dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.classList.add("drag-active"); }, false);
-        });
-        ["dragleave", "drop"].forEach(ev => {
-            dropArea.addEventListener(ev, (e) => { e.preventDefault(); dropArea.classList.remove("drag-active"); }, false);
-        });
-        dropArea.addEventListener("drop", (e) => {
-            const dt = e.dataTransfer;
-            if (dt.files && dt.files.length > 0) {
-                // If browser provided files, grab name or path
-                const file = dt.files[0];
-                document.getElementById("text-input").value = file.path || file.name;
-                checkInputDetection();
-            }
-        });
+      <div class="modal-body">
+        <div id="fix-preview-list" style="margin-bottom:16px;">
+          <!-- Loaded dynamically -->
+        </div>
 
-        // Instant text detection
-        document.getElementById("text-input").addEventListener("input", () => {
-            checkInputDetection();
-        });
+        <div class="redaction-banner" style="background-color:var(--surface-subtle); color:var(--text-main); border-color:var(--border);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Never delete rule: Obsolete or duplicate files are safely quarantined in .optiforge/quarantine/, never unlinked.</span>
+        </div>
+      </div>
 
-        function checkInputDetection() {
-            const raw = document.getElementById("text-input").value.trim() || detectedTarget;
-            fetch("/api/detect", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ raw_input: raw })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.detected) {
-                    detectedTarget = raw;
-                    document.getElementById("detected-container").style.display = "block";
-                    document.getElementById("detected-pill").innerText = `🎯 Detected: ${data.detected.friendly_label}`;
-                }
-            });
-        }
+      <div class="modal-footer" id="fix-modal-footer">
+        <button class="btn-ghost" onclick="closeFixPreviewModal()">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-apply" onclick="applySafeFixes()">
+          Apply Safe Fixes
+        </button>
+      </div>
+    </div>
+  </div>
 
-        function triggerFolderSelect() {
-            fetch("/api/dialog/pick", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dialog_type: "folder" })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.selected) {
-                    document.getElementById("text-input").value = data.selected;
-                    checkInputDetection();
-                }
-            });
-        }
 
-        function triggerFileSelect() {
-            fetch("/api/dialog/pick", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dialog_type: "files" })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.selected) {
-                    const val = Array.isArray(data.selected) ? data.selected.join(", ") : data.selected;
-                    document.getElementById("text-input").value = val;
-                    checkInputDetection();
-                }
-            });
-        }
+  <!-- ====================================================================
+       SCREEN 6: Settings & Local Privacy Modal
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-settings" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Settings & Privacy</h3>
+        <button class="btn-ghost" onclick="closeSettingsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-        function triggerImageSelect() {
-            fetch("/api/dialog/pick", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dialog_type: "images" })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.selected) {
-                    const val = Array.isArray(data.selected) ? data.selected.join(", ") : data.selected;
-                    document.getElementById("text-input").value = val;
-                    checkInputDetection();
-                }
-            });
-        }
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:18px;">
+        <div>
+          <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:4px;">100% Local Privacy Guarantee</h4>
+          <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45;">
+            OptiForge runs entirely on your local machine. No telemetry, code snippets, project files, or directory paths are ever uploaded or sent across the network.
+          </p>
+        </div>
 
-        function startAnalysis() {
-            const btn = document.getElementById("btn-analyze");
-            btn.disabled = true;
-            btn.innerText = "⏳ Analyzing project...";
+        <div>
+          <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:4px;">Theme Preference</h4>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button class="btn-secondary" id="btn-theme-light" onclick="setAppTheme('light')">Light Theme</button>
+            <button class="btn-secondary" id="btn-theme-dark" onclick="setAppTheme('dark')">Dark Theme</button>
+          </div>
+        </div>
 
-            const raw = document.getElementById("text-input").value.trim() || detectedTarget;
+        <div>
+          <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:4px;">Safety & Rollbacks</h4>
+          <p style="font-size:12.5px; color:var(--text-muted); line-height:1.45;">
+            Automatic atomic backups are saved in <code style="font-family:var(--font-mono); font-size:11px; background:var(--surface-subtle); padding:2px 4px; border-radius:3px;">.optiforge/backups/</code>. You can roll back any applied optimization at any time.
+          </p>
+        </div>
 
-            fetch("/api/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ raw_input: raw })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerText = "⚡ Optimize My Project";
-                if (data.success && data.result) {
-                    currentAnalysis = data.result;
-                    renderResults(data.result);
-                } else {
-                    alert("Analysis error: " + (data.error || "Unknown"));
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerText = "⚡ Optimize My Project";
-                alert("Error connecting to engine: " + err);
-            });
-        }
+        <div>
+          <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:4px;">About OptiForge</h4>
+          <p style="font-size:12px; color:var(--text-muted);">Version 1.0.0 &bull; Built with Python & modern web standards.</p>
+        </div>
+      </div>
 
-        function renderResults(res) {
-            document.getElementById("home-screen").style.display = "none";
-            document.getElementById("results-screen").style.display = "block";
-            document.getElementById("step-1").classList.remove("active");
-            document.getElementById("step-2").classList.add("active");
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeSettingsModal()">Done</button>
+      </div>
+    </div>
+  </div>
 
-            document.getElementById("res-score").innerText = res.health_score;
-            document.getElementById("res-headline").innerText = res.headline_summary;
-            document.getElementById("res-sub").innerText = `Found ${res.total_findings_count} potential improvements across ${res.friendly_label}.`;
 
-            document.getElementById("lbl-current").innerText = `${res.current_size_mb} MB`;
-            document.getElementById("lbl-optimized").innerText = `${res.optimized_size_mb} MB`;
-            document.getElementById("lbl-saved").innerText = `Saves ${res.total_savings_mb} MB`;
+  <!-- ====================================================================
+       SCREEN 7: First-Run Walkthrough Modal
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-walkthrough" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Welcome to OptiForge</h3>
+        <button class="btn-ghost" onclick="closeWalkthroughModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-            const pct = Math.max(10, Math.min(100, Math.round((res.optimized_size_mb / res.current_size_mb) * 100)));
-            document.getElementById("bar-fill").style.width = `${pct}%`;
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">1</div>
+          <div>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Drop in any software target</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Drag a project folder, pictures, code files, or paste a live website URL. OptiForge automatically detects the language and components.</p>
+          </div>
+        </div>
 
-            document.getElementById("cnt-quick").innerText = res.quick_wins.length;
-            document.getElementById("cnt-worth").innerText = res.worth_doing.length;
-            document.getElementById("cnt-opt").innerText = res.optional.length;
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">2</div>
+          <div>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Review your plain-English health report</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">See total space you can reclaim, speed improvements, and prioritized findings grouped into Quick wins and Worth doing.</p>
+          </div>
+        </div>
 
-            renderCardList();
-        }
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">3</div>
+          <div>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Fix it safely or hand off to an AI agent</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Let OptiForge automatically fix safe items with instant 1-click rollback, or copy a ready-to-paste prompt with your secrets automatically redacted.</p>
+          </div>
+        </div>
+      </div>
 
-        function switchTab(tab) {
-            activeTab = tab;
-            document.getElementById("tab-quick").classList.toggle("active", tab === "quick");
-            document.getElementById("tab-worth").classList.toggle("active", tab === "worth");
-            document.getElementById("tab-opt").classList.toggle("active", tab === "optional");
-            renderCardList();
-        }
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeWalkthroughModal()">Get Started</button>
+      </div>
+    </div>
+  </div>
 
-        function renderCardList() {
-            if (!currentAnalysis) return;
-            const container = document.getElementById("cards-container");
-            let items = [];
-            if (activeTab === "quick") items = currentAnalysis.quick_wins;
-            else if (activeTab === "worth") items = currentAnalysis.worth_doing;
-            else items = currentAnalysis.optional;
 
-            if (items.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:32px; color:var(--text-sub);">✓ No issues in this section! Everything is clean.</div>`;
-                return;
-            }
+  <!-- Floating Toast Notification -->
+  <div class="toast" id="app-toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toast-message">Action completed</span>
+  </div>
 
-            container.innerHTML = items.map(f => {
-                const badgeClass = f.safety_badge === "Safe" ? "badge-safe" : (f.safety_badge === "Probably safe" ? "badge-likely" : "badge-careful");
-                return `
-                    <div class="finding-card">
-                        <div class="card-top">
-                            <div class="card-title">${f.friendly_title}</div>
-                            <div class="card-badges">
-                                <span class="badge ${badgeClass}">${f.safety_badge}</span>
-                                <span class="badge badge-gain">${f.estimated_gain}</span>
-                            </div>
-                        </div>
-                        <div class="card-why"><strong>Why it matters:</strong> ${f.why_it_matters}</div>
-                        <div class="card-todo"><strong>What to do:</strong> ${f.what_to_do}</div>
-                        <div class="card-actions">
-                            <div class="action-group">
-                                <button class="btn-sm ai" onclick="openAIPromptForFinding('${f.id}')">🤖 Copy Prompt for AI</button>
-                                <button class="btn-sm" onclick="askAIExplanation('${f.id}')">💡 Explain with AI</button>
-                            </div>
-                            <span class="advanced-expander" onclick="toggleAdvanced('${f.id}')">▼ Advanced details</span>
-                        </div>
-                        <div class="advanced-box" id="adv-${f.id}">${JSON.stringify(f.advanced_details, null, 2)}</div>
-                    </div>
-                `;
-            }).join("");
-        }
-
-        function toggleAdvanced(id) {
-            const el = document.getElementById(`adv-${id}`);
-            el.style.display = el.style.display === "block" ? "none" : "block";
-        }
-
-        function goHome() {
-            document.getElementById("results-screen").style.display = "none";
-            document.getElementById("home-screen").style.display = "block";
-            document.getElementById("step-2").classList.remove("active");
-            document.getElementById("step-1").classList.add("active");
-        }
-
-        // Prompt Hand-off Modal
-        function openAIPromptModal(singleFindingId = null) {
-            window.__activeFindingId = singleFindingId;
-            document.getElementById("modal-ai-prompt").classList.add("active");
-            refreshPromptPreview();
-        }
-
-        function openAIPromptForFinding(findingId) {
-            openAIPromptModal(findingId);
-        }
-
-        function closeAIPromptModal() {
-            document.getElementById("modal-ai-prompt").classList.remove("active");
-        }
-
-        function refreshPromptPreview() {
-            const mode = document.querySelector('input[name="prompt-mode"]:checked').value;
-            const isShort = document.getElementById("chk-short").checked;
-            const findingId = window.__activeFindingId || null;
-
-            fetch("/api/generate-prompt", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    mode: mode,
-                    detail_level: isShort ? "short" : "detailed",
-                    finding_id: findingId
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById("prompt-box").value = data.prompt_text;
-                    const shield = document.getElementById("shield-badge");
-                    if (data.secrets_redacted_count > 0) {
-                        shield.innerText = data.redaction_warning;
-                        shield.style.display = "flex";
-                    } else {
-                        shield.innerText = "🛡️ All API keys, passwords, and secrets have been automatically redacted.";
-                    }
-                }
-            });
-        }
-
-        function copyPromptToClipboard() {
-            const txt = document.getElementById("prompt-box").value;
-            navigator.clipboard.writeText(txt).then(() => {
-                showToast("✓ Copied prompt to clipboard!");
-            });
-        }
-
-        function savePromptAsFile() {
-            const txt = document.getElementById("prompt-box").value;
-            const blob = new Blob([txt], { type: "text/markdown" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "optiforge-ai-prompt.md";
-            a.click();
-            showToast("✓ Saved as optiforge-ai-prompt.md");
-        }
-
-        // Safe Fix & Rollback
-        function openFixModal() {
-            fetch("/api/fix/preview")
-            .then(res => res.json())
-            .then(data => {
-                const list = document.getElementById("fix-preview-list");
-                if (data.proposals && data.proposals.length > 0) {
-                    list.innerHTML = data.proposals.map(p => `<div>• <strong>${p.action_type.replace('_', ' ').toUpperCase()}:</strong> ${p.description}</div>`).join("");
-                } else {
-                    list.innerHTML = "No automated fixes remaining.";
-                }
-                document.getElementById("modal-fix-confirm").classList.add("active");
-            });
-        }
-
-        function closeFixModal() {
-            document.getElementById("modal-fix-confirm").classList.remove("active");
-        }
-
-        function executeSafeFix() {
-            closeFixModal();
-            showToast("Applying optimizations safely...");
-            fetch("/api/fix/apply", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mode: "safe_only" })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`✓ Applied ${data.applied_count} fixes! Saved ${data.bytes_saved_mb} MB.`);
-                    startAnalysis();
-                } else {
-                    alert("Fix error: " + data.error);
-                }
-            });
-        }
-
-        function triggerRollback() {
-            if (!confirm("Are you sure you want to undo all applied fixes? All original files will be restored from backup.")) return;
-            showToast("Rolling back changes...");
-            fetch("/api/fix/rollback", { method: "POST" })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`✓ Rolled back ${data.restored_count} files successfully!`);
-                    startAnalysis();
-                } else {
-                    alert("Rollback failed: " + (data.error || "Unknown"));
-                }
-            });
-        }
-
-        // AI Explanations
-        function askAIExplanation(findingId) {
-            const apiKey = localStorage.getItem("optiforge_api_key") || "";
-            if (!apiKey) {
-                alert("Please add your Gemini API Key in Settings to enable deeper AI explanations.");
-                openSettings();
-                return;
-            }
-            showToast("Asking AI...");
-            fetch("/api/ai/explain", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ finding_id: findingId, api_key: apiKey })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("AI Explanation:\n\n" + data.explanation);
-                } else {
-                    alert(data.error || "AI service unavailable.");
-                }
-            });
-        }
-
-        // Settings
-        function openSettings() {
-            const key = localStorage.getItem("optiforge_api_key") || "";
-            const isAi = localStorage.getItem("optiforge_ai_enabled") === "true";
-            document.getElementById("txt-api-key").value = key;
-            document.getElementById("chk-ai-enabled").checked = isAi;
-            toggleAIInputs();
-            document.getElementById("modal-settings").classList.add("active");
-        }
-        function closeSettings() { document.getElementById("modal-settings").classList.remove("active"); }
-        function toggleAIInputs() {
-            const enabled = document.getElementById("chk-ai-enabled").checked;
-            document.getElementById("ai-key-section").style.display = enabled ? "block" : "none";
-        }
-        function saveSettings() {
-            const enabled = document.getElementById("chk-ai-enabled").checked;
-            const key = document.getElementById("txt-api-key").value.trim();
-            localStorage.setItem("optiforge_ai_enabled", enabled);
-            localStorage.setItem("optiforge_api_key", key);
-            closeSettings();
-            showToast("Settings saved!");
-        }
-
-        // UI Helpers
-        function showToast(msg) {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.style.display = "block";
-            setTimeout(() => { t.style.display = "none"; }, 3500);
-        }
-
-        function toggleTheme() {
-            document.body.classList.toggle("light-theme");
-            const isLight = document.body.classList.contains("light-theme");
-            document.getElementById("theme-btn").innerText = isLight ? "🌙 Dark" : "☀️ Light";
-            localStorage.setItem("optiforge_theme", isLight ? "light" : "dark");
-        }
-
-        function openWalkthrough() {
-            alert("How OptiForge Works:\n\n1. Add your project: Select a folder, drag & drop files, or paste a link.\n2. See your savings: OptiForge scans for heavy pictures, duplicate files, and bloat.\n3. Fix or give to AI: Click 'Let OptiForge fix the safe stuff' or copy a ready prompt for your AI assistant!");
-        }
-
-        // Restore theme
-        if (localStorage.getItem("optiforge_theme") === "light") toggleTheme();
-
-        // Initial detection
-        checkInputDetection();
-    </script>
+  <script src="app.js"></script>
 </body>
 </html>

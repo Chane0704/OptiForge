@@ -100,12 +100,23 @@ def build():
     if not icon_file.exists():
         print("Creating application icon...")
         from PIL import Image, ImageDraw
-        img = Image.new("RGBA", (256, 256), color=(15, 23, 42, 255))
-        draw = ImageDraw.Draw(img)
-        draw.rounded_rectangle([8, 8, 248, 248], radius=48, fill=(15, 23, 42, 255), outline=(56, 189, 248, 255), width=6)
-        bolt = [(138, 28), (82, 134), (128, 134), (108, 228), (178, 114), (136, 114)]
-        draw.polygon(bolt, fill=(56, 189, 248, 255))
-        img.save(str(icon_file), format="ICO", sizes=[(256, 256), (128, 128), (64, 64), (32, 32), (16, 16)])
+        sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+        images = []
+        for w, h in sizes:
+            img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            scale = w / 256.0
+            pad = int(12 * scale)
+            r = int(52 * scale)
+            draw.rounded_rectangle([pad, pad, w - pad, h - pad], radius=r, fill=(28, 25, 23, 255), outline=(194, 87, 56, 180), width=max(1, int(4 * scale)))
+            anvil_base = [(int(64 * scale), int(185 * scale)), (int(192 * scale), int(185 * scale)), (int(176 * scale), int(160 * scale)), (int(80 * scale), int(160 * scale))]
+            draw.polygon(anvil_base, fill=(194, 87, 56, 255))
+            anvil_top = [(int(54 * scale), int(135 * scale)), (int(188 * scale), int(135 * scale)), (int(202 * scale), int(118 * scale)), (int(178 * scale), int(112 * scale)), (int(68 * scale), int(112 * scale))]
+            draw.polygon(anvil_top, fill=(224, 108, 76, 255))
+            flame = [(int(128 * scale), int(42 * scale)), (int(150 * scale), int(80 * scale)), (int(142 * scale), int(106 * scale)), (int(128 * scale), int(98 * scale)), (int(114 * scale), int(106 * scale)), (int(106 * scale), int(80 * scale))]
+            draw.polygon(flame, fill=(245, 243, 239, 255))
+            images.append(img)
+        images[0].save(str(icon_file), format="ICO", sizes=sizes, append_images=images[1:])
 
     # Step 2: PyInstaller --onedir build
     print("\n📦 [1/4] Running PyInstaller (--onedir)...")

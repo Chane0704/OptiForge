@@ -77,6 +77,11 @@ def serve_static(filepath):
     return bottle.static_file(filepath, root=str(STATIC_DIR))
 
 
+@app.route("/<filepath:re:.*\\.(css|js|woff2|woff|ttf|png|svg|ico)>")
+def serve_root_asset(filepath):
+    return bottle.static_file(filepath, root=str(STATIC_DIR))
+
+
 @app.route("/api/detect", method="POST")
 def api_detect():
     try:
