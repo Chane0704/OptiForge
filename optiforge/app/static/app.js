@@ -5,7 +5,8 @@
 
 let appState = {
   currentScreen: 'home',
-  currentTargetPath: '',
+  currentTargetPath: '',         // Full resolved absolute path or URL
+  currentTargetDisplayName: '',  // Short human-readable display label
   analysisResult: null,
   promptMode: 'fix_safe',
   promptDetail: 'detailed',
@@ -172,15 +173,21 @@ async function browseNative(dialogType) {
       })
     });
     const data = await resp.json();
-    if (data.success && data.path) {
-      // Save last folder
-      let dir = data.path;
+    if (data.cancelled) return;
+
+    const chosen = data.path || data.selected;
+    const pickedPath = Array.isArray(chosen) ? chosen[0] : chosen;
+    if (data.success && pickedPath) {
+      // Save last directory for future pickers
+      let dir = pickedPath;
       if (dialogType !== 'folder') {
         const lastSlash = Math.max(dir.lastIndexOf('\\'), dir.lastIndexOf('/'));
         if (lastSlash > 0) dir = dir.substring(0, lastSlash);
       }
       localStorage.setItem('optiforge_last_folder', dir);
-      startAnalysis(data.path);
+
+      const displayName = pickedPath.split(/[\\/]/).filter(Boolean).pop() || pickedPath;
+      startAnalysis(pickedPath, displayName);
     }
   } catch (err) {
     showToast(`Dialog error: ${err.message}`);
@@ -226,25 +233,29 @@ function setupDragAndDrop() {
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length > 0) {
       const file = dt.files[0];
-      // On desktop webview, file.path contains full local filesystem path
+      // On desktop webview, file.path contains full local filesystem path when available
       const targetPath = file.path || file.name;
-      startAnalysis(targetPath);
+      const displayName = file.name || targetPath.split(/[\\/]/).filter(Boolean).pop() || 'Project';
+      startAnalysis(targetPath, displayName);
     }
   }, false);
 }
 
 function startAnalysisFromInput() {
   const textInput = document.getElementById('target-input-text');
-  const val = textInput ? textInput.value.trim() : '';
+  let val = textInput ? textInput.value.trim() : '';
   if (!val) {
     showToast('Please enter a folder path, website URL, or code snippet.');
     return;
   }
-  startAnalysis(val);
+  // Strip surrounding quotes (e.g. from Windows "Copy as path")
+  val = val.replace(/^["']+|["']+$/g, '').trim();
+  const displayName = val.split(/[\\/]/).filter(Boolean).pop() || val;
+  startAnalysis(val, displayName);
 }
 
 function analyzeSampleProject() {
-  startAnalysis('sample_bloated_project');
+  startAnalysis('sample_bloated_project', 'sample_bloated_project');
 }
 
 /* ==========================================================================
@@ -310,7 +321,7 @@ function renderRecentProjects() {
   recents.forEach(p => {
     const card = document.createElement('div');
     card.className = 'recent-project-card';
-    card.onclick = () => startAnalysis(p.path);
+    card.onclick = () => startAnalysis(p.path, p.name);
     card.innerHTML = `
       <div class="recent-project-left">
         <div class="recent-project-name">${escapeHtml(p.name)}</div>
@@ -318,7 +329,7 @@ function renderRecentProjects() {
       </div>
       <div class="recent-project-right">
         <span class="recent-score-pill">${p.score}/100</span>
-        <button class="btn-ghost btn-sm" onclick="startAnalysis('${escapeHtml(p.path)}')" title="Re-analyze this project">
+        <button class="btn-ghost btn-sm" onclick="event.stopPropagation(); startAnalysis('${escapeHtml(p.path)}', '${escapeHtml(p.name)}')" title="Re-analyze this project">
           Re-analyze
         </button>
         <button class="btn-ghost btn-sm" style="color:var(--text-muted); padding:4px 6px;" onclick="removeRecentProject('${escapeHtml(p.path)}', event)" title="Remove from recent list">
@@ -333,9 +344,13 @@ function renderRecentProjects() {
 /* ==========================================================================
    Core Analysis Execution & Target Override
    ========================================================================== */
-async function startAnalysis(rawInput) {
-  showAnalyzingScreen(rawInput);
+async function startAnalysis(rawInput, displayName = '') {
+  if (!rawInput) return;
+  const shortName = displayName || rawInput.split(/[\\/]/).filter(Boolean).pop() || 'Project';
   appState.currentTargetPath = rawInput;
+  appState.currentTargetDisplayName = shortName;
+
+  showAnalyzingScreen(shortName);
 
   try {
     const response = await fetch('/api/analyze', {
@@ -353,6 +368,7 @@ async function startAnalysis(rawInput) {
 
     appState.analysisResult = data.result;
     appState.currentTargetPath = data.result.target_path || rawInput;
+    appState.currentTargetDisplayName = data.result.target_name || shortName;
 
     // Persist to localStorage
     saveRecentProject(data.result);
@@ -372,9 +388,9 @@ async function startAnalysis(rawInput) {
 
 function reanalyzeCurrentTarget() {
   if (appState.currentTargetPath) {
-    startAnalysis(appState.currentTargetPath);
+    startAnalysis(appState.currentTargetPath, appState.currentTargetDisplayName);
   } else if (appState.analysisResult && appState.analysisResult.target_path) {
-    startAnalysis(appState.analysisResult.target_path);
+    startAnalysis(appState.analysisResult.target_path, appState.analysisResult.target_name);
   } else {
     showHomeScreen();
   }

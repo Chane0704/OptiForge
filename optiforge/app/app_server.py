@@ -275,7 +275,8 @@ def api_dialog_pick():
 
             if result:
                 selected = result[0] if len(result) == 1 else list(result)
-                return {"success": True, "selected": selected}
+                path_val = selected if isinstance(selected, str) else (selected[0] if selected else "")
+                return {"success": True, "selected": selected, "path": path_val}
             return {"success": False, "cancelled": True}
 
         # 2. Fallback using PowerShell on Windows (runs with CREATE_NO_WINDOW)
@@ -311,7 +312,8 @@ def api_dialog_pick():
             paths = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
             if paths:
                 selected = paths[0] if len(paths) == 1 else paths
-                return {"success": True, "selected": selected}
+                path_val = selected if isinstance(selected, str) else (selected[0] if selected else "")
+                return {"success": True, "selected": selected, "path": path_val}
 
         return {"success": False, "cancelled": True}
     except Exception as e:

@@ -91,12 +91,18 @@ class InputDetector:
             )
 
         # Case 2: String or single Path
-        input_str = str(raw_input).strip()
-        if not input_str:
+        raw_str = str(raw_input).strip()
+        if not raw_str:
             raise ValueError("No input provided to analyze.")
 
+        # Normalize quotes, spaces, and trailing separators (e.g. from Windows 'Copy as path')
+        clean_str = raw_str.strip('\'" \t\r\n')
+        # Strip trailing slashes unless it's a drive root like 'C:\'
+        if len(clean_str) > 3 and clean_str.endswith(("\\", "/")):
+            clean_str = clean_str.rstrip("\\/")
+
         # Check for system target
-        if input_str.lower() in ("system", "machine", "localhost_sys", "os"):
+        if clean_str.lower() in ("system", "machine", "localhost_sys", "os"):
             target = Target(kind=TargetKind.SYSTEM, identifier="system", metadata={"scope": "machine"})
             return DetectedInput(
                 target=target,
@@ -107,8 +113,8 @@ class InputDetector:
             )
 
         # Check if process ID (numeric or pid:1234)
-        if input_str.isdigit() or (input_str.startswith("pid:") and input_str[4:].isdigit()):
-            pid = int(input_str.split(":")[-1])
+        if clean_str.isdigit() or (clean_str.startswith("pid:") and clean_str[4:].isdigit()):
+            pid = int(clean_str.split(":")[-1])
             target = Target(kind=TargetKind.PROCESS, identifier=f"pid:{pid}", pid=pid, metadata={"pid": pid})
             return DetectedInput(
                 target=target,
@@ -119,9 +125,9 @@ class InputDetector:
             )
 
         # Check if process name (proc:...)
-        if input_str.startswith(("proc:", "process:")):
-            pname = input_str.split(":", 1)[1]
-            target = Target(kind=TargetKind.PROCESS, identifier=input_str, process_name=pname, metadata={"process_name": pname})
+        if clean_str.startswith(("proc:", "process:")):
+            pname = clean_str.split(":", 1)[1]
+            target = Target(kind=TargetKind.PROCESS, identifier=clean_str, process_name=pname, metadata={"process_name": pname})
             return DetectedInput(
                 target=target,
                 input_type="process",
@@ -131,28 +137,27 @@ class InputDetector:
             )
 
         # STRICT URL CHECK:
-        # ONLY treat as a website if it starts with http:// or https:// and does NOT contain newlines
-        # (avoid classifying code snippets containing URLs as websites).
+        # ONLY treat as a website if it starts with http:// or https:// and does NOT contain newlines or internal spaces
         is_standalone_url = (
-            "\n" not in input_str and
-            " " not in input_str and
-            input_str.lower().startswith(("http://", "https://"))
+            "\n" not in clean_str and
+            " " not in clean_str and
+            clean_str.lower().startswith(("http://", "https://"))
         )
         if is_standalone_url:
-            parsed = urllib.parse.urlparse(input_str)
+            parsed = urllib.parse.urlparse(clean_str)
             if parsed.netloc:
-                target = Target(kind=TargetKind.WEBSITE, identifier=input_str, url=input_str, metadata={"host": parsed.netloc})
+                target = Target(kind=TargetKind.WEBSITE, identifier=clean_str, url=clean_str, metadata={"host": parsed.netloc})
                 return DetectedInput(
                     target=target,
                     input_type="website",
                     friendly_label=f"Website ({parsed.netloc})",
-                    target_path=input_str,
+                    target_path=clean_str,
                     raw_input=raw_input,
                 )
 
         # Dynamic sample project resolver (handles installed app running in Program Files/AppData)
-        candidate_path = Path(input_str)
-        if not candidate_path.exists() and input_str in ("sample_bloated_project", "sample", "sample_project"):
+        candidate_path = Path(clean_str)
+        if not candidate_path.exists() and clean_str in ("sample_bloated_project", "sample", "sample_project"):
             for cand in [
                 Path.cwd() / "sample_bloated_project",
                 Path(sys.executable).parent / "sample_bloated_project",
@@ -161,6 +166,28 @@ class InputDetector:
             ]:
                 if cand.exists():
                     candidate_path = cand
+                    break
+
+        # Sibling and User Directory Search for bare names (e.g. from Drag & Drop or bare folder names)
+        if not candidate_path.exists() and not candidate_path.is_absolute():
+            search_roots = [
+                Path.cwd(),
+                Path.cwd().parent,
+                Path.home() / "Downloads" / "My Projects",
+                Path.home() / "Downloads",
+                Path.home() / "Desktop",
+                Path.home() / "Documents",
+                Path.home() / "Projects",
+                Path.home(),
+            ]
+            if getattr(sys, "frozen", False):
+                exe_parent = Path(sys.executable).parent
+                search_roots.extend([exe_parent, exe_parent.parent, exe_parent / "_internal"])
+
+            for root in search_roots:
+                test_cand = root / clean_str
+                if test_cand.exists():
+                    candidate_path = test_cand
                     break
 
         # Check if an existing filesystem path (directory or file)
@@ -241,36 +268,36 @@ class InputDetector:
 
         # Case 3: Pasted text, code snippet, or raw configuration (multiline or code syntax)
         is_code_snippet = (
-            len(input_str) > 0 and (
-                "\n" in input_str or
-                "{" in input_str or
-                ";" in input_str or
-                "def " in input_str or
-                "import " in input_str or
-                "<html" in input_str.lower() or
-                "const " in input_str or
-                "function" in input_str
+            len(clean_str) > 0 and (
+                "\n" in clean_str or
+                "{" in clean_str or
+                ";" in clean_str or
+                "def " in clean_str or
+                "import " in clean_str or
+                "<html" in clean_str.lower() or
+                "const " in clean_str or
+                "function" in clean_str
             )
         )
         if is_code_snippet:
-            lang, ext = cls._detect_snippet_language(input_str)
+            lang, ext = cls._detect_snippet_language(clean_str)
             scratch_dir.mkdir(parents=True, exist_ok=True)
             snippet_file = scratch_dir / f"snippet{ext}"
-            snippet_file.write_text(input_str, encoding="utf-8")
+            snippet_file.write_text(clean_str, encoding="utf-8")
 
             target = Target(
                 kind=TargetKind.CODEBASE,
                 identifier="Pasted Code Snippet",
                 path=snippet_file,
-                metadata={"is_snippet": True, "language": lang, "lines": len(input_str.splitlines())}
+                metadata={"is_snippet": True, "language": lang, "lines": len(clean_str.splitlines())}
             )
             return DetectedInput(
                 target=target,
                 input_type="snippet",
                 friendly_label=f"Pasted {lang} Snippet",
-                target_path=f"Snippet ({len(input_str.splitlines())} lines)",
+                target_path=f"Snippet ({len(clean_str.splitlines())} lines)",
                 item_count=1,
-                estimated_size_bytes=len(input_str.encode("utf-8")),
+                estimated_size_bytes=len(clean_str.encode("utf-8")),
                 raw_input=raw_input,
                 language=lang,
                 detected_tech_stack=[lang],
@@ -278,8 +305,9 @@ class InputDetector:
 
         # If it's not a URL, not a process, not a snippet, and not on disk:
         # DO NOT silently create a phantom Target that reports 100/100 score!
+        attempted_abs = Path(clean_str).resolve()
         raise FileNotFoundError(
-            f"Path does not exist on disk: '{input_str}'. "
+            f"Path does not exist on disk: '{clean_str}' (checked full path: '{attempted_abs}'). "
             "Please check the folder path or click 'Choose Folder' to browse."
         )
 
