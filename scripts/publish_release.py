@@ -133,18 +133,19 @@ def main():
     # Clean upload base url (strip "{?name,label}")
     base_upload_url = upload_url_template.split("{")[0]
 
+    VER = TAG.lstrip("v")
     files_to_upload = [
-        ("OptiForge-Setup-1.0.0.exe", "application/vnd.microsoft.portable-executable"),
-        ("OptiForge Setup 1.0.0.exe", "application/vnd.microsoft.portable-executable"),
-        ("OptiForge-v1.0.0-windows-x64.zip", "application/zip"),
+        (f"OptiForge-Setup-{VER}.exe", "application/vnd.microsoft.portable-executable"),
+        (f"OptiForge Setup {VER}.exe", "application/vnd.microsoft.portable-executable"),
+        (f"OptiForge-v{VER}-windows-x64.zip", "application/zip"),
         ("CHECKSUMS.txt", "text/plain"),
     ]
 
     dist_dir = Path(__file__).resolve().parent.parent / "dist"
 
     # Ensure space-separated alias exists
-    setup_hyphen = dist_dir / "OptiForge-Setup-1.0.0.exe"
-    setup_space = dist_dir / "OptiForge Setup 1.0.0.exe"
+    setup_hyphen = dist_dir / f"OptiForge-Setup-{VER}.exe"
+    setup_space = dist_dir / f"OptiForge Setup {VER}.exe"
     if setup_hyphen.exists() and not setup_space.exists():
         import shutil
         shutil.copy2(setup_hyphen, setup_space)
@@ -185,7 +186,7 @@ def main():
             print(raw_err.decode("utf-8", errors="replace"))
 
     print("\n==================================================")
-    print("🎉 All assets uploaded to GitHub Release v1.0.0!")
+    print(f"🎉 All assets uploaded to GitHub Release {TAG}!")
     print(f"Release URL: https://github.com/{REPO}/releases/tag/{TAG}")
     print("==================================================")
 
