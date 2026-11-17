@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bloated Demo Application</title>
+    
+    <!-- Render-blocking synchronous scripts in head -->
+    <script src="scripts/analytics.js"></script>
+    <script src="scripts/heavy_tracking.js"></script>
+    
+    <!-- Large un-inlined CSS link -->
+    <link rel="stylesheet" href="styles/theme.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to Bloated Web App</h1>
+        <!-- Image missing explicit width and height (CLS issue) -->
+        <img src="images/heavy_photo.bmp" alt="Hero Photo">
+        <img src="images/hero_banner.png" alt="Banner">
+    </header>
+    
+    <main>
+        <p>This is a bloated web page with unoptimized assets and render-blocking scripts.</p>
+    </main>
+    
+    <script src="scripts/bundle.js"></script>
+</body>
+</html>

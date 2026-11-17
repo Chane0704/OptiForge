@@ -1,0 +1,11 @@
+{
+  "name": "sample-bloated-project",
+  "version": "1.0.0",
+  "description": "Deliberately bloated testbed for OptiForge optimization verification",
+  "main": "scripts/bundle.js",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "faker": "^6.6.6"
+  }
+}
