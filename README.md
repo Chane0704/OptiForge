@@ -1,6 +1,21 @@
 # ⚡ OptiForge: Universal Performance & Efficiency Optimizer
 
+[![GitHub Release](https://img.shields.io/github/v/release/Chane0704/OptiForge?style=for-the-badge&logo=github&color=38bdf8)](https://github.com/Chane0704/OptiForge/releases)
+[![Download Windows App](https://img.shields.io/badge/Download-Windows%20Executable%20(.exe)-brightgreen?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v0.1.0/OptiForgeApp.exe)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
+[![Tests Passing](https://img.shields.io/badge/Tests-35%20Passed-success?style=for-the-badge)](https://github.com/Chane0704/OptiForge)
+
 > **OptiForge** is an extensible, industry-grade performance analysis and optimization engine. It audits websites, local processes, and codebases to diagnose bottlenecks, eliminate bloat, prioritize fixes by ROI (Impact vs. Effort), and safely apply reversible optimizations with zero risk of data loss.
+
+---
+
+## 📥 Direct Downloads
+
+| User Type | Download / Install Link | Notes |
+| :--- | :--- | :--- |
+| **Non-Technical Users** | [**Download OptiForgeApp.exe (v0.1.0)**](https://github.com/Chane0704/OptiForge/releases/download/v0.1.0/OptiForgeApp.exe) | Single-click desktop application. **No Python or terminal required!** |
+| **Developers & Engineers** | `pip install git+https://github.com/Chane0704/OptiForge.git` | Full CLI suite (`optiforge analyze`, `optiforge fix`, `optiforge serve`). |
+| **GitHub Releases Page** | [**Browse All Releases & Assets**](https://github.com/Chane0704/OptiForge/releases) | Source code packages (`.zip`, `.tar.gz`) and executables. |
 
 ---
 
