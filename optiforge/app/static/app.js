@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if we have a persisted previous analysis result
     restoreLastResult();
   }
+
+  // Silent OTA update check in background after 2.5s
+  setTimeout(initUpdateChecker, 2500);
 });
 
 function initTheme() {
@@ -1000,4 +1003,165 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/* ==========================================================================
+   Over-The-Air (OTA) 1-Click Update Supervisor
+   ========================================================================== */
+let updatePollInterval = null;
+
+async function initUpdateChecker() {
+  try {
+    const resp = await fetch('/api/updater/check');
+    const data = await resp.json();
+    if (data.success && data.update_available) {
+      appState.pendingUpdate = data;
+      const banner = document.getElementById('update-banner');
+      const tag = document.getElementById('update-banner-tag');
+      if (banner && tag) {
+        tag.textContent = `v${data.latest_version}`;
+        banner.style.display = 'block';
+      }
+      const settingsStatus = document.getElementById('settings-update-status');
+      if (settingsStatus) {
+        settingsStatus.innerHTML = `Current: <strong>v${data.current_version}</strong> • <span style="color:var(--accent); font-weight:600;">Update v${data.latest_version} available!</span>`;
+      }
+    }
+  } catch (e) {
+    // Silent fail if offline or rate-limited
+  }
+}
+
+function dismissUpdateBanner() {
+  const banner = document.getElementById('update-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function openUpdateModal() {
+  const modal = document.getElementById('modal-updater');
+  if (!modal) return;
+
+  const data = appState.pendingUpdate;
+  if (data) {
+    document.getElementById('updater-current-ver').textContent = `v${data.current_version || '1.0.0'}`;
+    document.getElementById('updater-new-ver').textContent = `v${data.latest_version || '1.0.1'}`;
+    const notesBox = document.getElementById('updater-release-notes');
+    if (notesBox) {
+      notesBox.textContent = data.release_notes || 'Performance improvements, UI refinements, and bug fixes.';
+    }
+  }
+
+  modal.classList.add('open');
+}
+
+function closeUpdateModal() {
+  const modal = document.getElementById('modal-updater');
+  if (modal) modal.classList.remove('open');
+  if (updatePollInterval) {
+    clearInterval(updatePollInterval);
+    updatePollInterval = null;
+  }
+}
+
+async function checkUpdatesManual() {
+  const statusEl = document.getElementById('settings-update-status');
+  if (statusEl) statusEl.textContent = 'Checking for updates on GitHub...';
+
+  try {
+    const resp = await fetch('/api/updater/check');
+    const data = await resp.json();
+    if (data.success) {
+      if (data.update_available) {
+        appState.pendingUpdate = data;
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:var(--accent); font-weight:600;">Update v${data.latest_version} available!</span>`;
+        }
+        openUpdateModal();
+      } else {
+        if (statusEl) statusEl.textContent = `You're on the latest version (v${data.current_version}). Checked at ${data.last_checked}.`;
+        showToast('OptiForge is up to date.');
+      }
+    } else {
+      if (statusEl) statusEl.textContent = `Update check failed: ${data.error}`;
+      showToast(`Update check error: ${data.error}`);
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Connection error: ${err.message}`;
+    showToast(`Check failed: ${err.message}`);
+  }
+}
+
+async function startUpdateDownload() {
+  const btn = document.getElementById('btn-start-update');
+  const progressBox = document.getElementById('updater-progress-container');
+  const footer = document.getElementById('updater-footer');
+  if (btn) btn.style.display = 'none';
+  if (progressBox) progressBox.style.display = 'block';
+
+  try {
+    const resp = await fetch('/api/updater/download', { method: 'POST' });
+    const data = await resp.json();
+    if (!data.success) {
+      showToast(`Download error: ${data.error}`);
+      return;
+    }
+
+    // Poll download status every 600ms
+    updatePollInterval = setInterval(async () => {
+      try {
+        const sResp = await fetch('/api/updater/status');
+        const sData = await sResp.json();
+
+        const bar = document.getElementById('updater-progress-bar');
+        const pct = document.getElementById('updater-progress-percent');
+        const bytes = document.getElementById('updater-progress-bytes');
+        const statusText = document.getElementById('updater-progress-status');
+
+        if (bar) bar.style.width = `${sData.progress_percent}%`;
+        if (pct) pct.textContent = `${sData.progress_percent}%`;
+        if (bytes) bytes.textContent = `${sData.downloaded_mb} MB / ${sData.total_mb} MB`;
+
+        if (sData.status === 'ready') {
+          clearInterval(updatePollInterval);
+          updatePollInterval = null;
+          if (statusText) statusText.textContent = '✓ Download complete & verified!';
+          if (bar) bar.style.backgroundColor = 'var(--badge-safe-text)';
+          if (footer) {
+            footer.innerHTML = `
+              <button class="btn-ghost" onclick="closeUpdateModal()">Later</button>
+              <button class="btn-primary" onclick="applyUpdateNow()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+                Restart & Apply Update
+              </button>
+            `;
+          }
+        } else if (sData.status === 'error') {
+          clearInterval(updatePollInterval);
+          updatePollInterval = null;
+          if (statusText) statusText.textContent = `Error: ${sData.error}`;
+        }
+      } catch (e) {
+        // network blip during download
+      }
+    }, 600);
+  } catch (err) {
+    showToast(`Failed to start download: ${err.message}`);
+  }
+}
+
+async function applyUpdateNow() {
+  const statusText = document.getElementById('updater-progress-status');
+  if (statusText) statusText.textContent = 'Applying update and restarting OptiForge...';
+
+  try {
+    const resp = await fetch('/api/updater/apply', { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      showToast('OptiForge is restarting to apply update...');
+    } else {
+      showToast(`Update launch error: ${data.error}`);
+    }
+  } catch (err) {
+    showToast(`Restarting: ${err.message}`);
+  }
 }

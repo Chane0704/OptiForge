@@ -38,6 +38,20 @@
     </div>
   </header>
 
+  <!-- Topbar Update Banner (Sleek OTA notification) -->
+  <div id="update-banner" class="update-banner" style="display:none;">
+    <div class="update-banner-inner">
+      <div style="display:flex; align-items:center;">
+        <span class="update-dot"></span>
+        <span>A new update is available: <strong id="update-banner-tag">v1.0.1</strong></span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn-primary btn-sm" onclick="openUpdateModal()">Update Now</button>
+        <button class="btn-ghost btn-sm" onclick="dismissUpdateBanner()">Later</button>
+      </div>
+    </div>
+  </div>
+
   <main class="app-container">
 
     <!-- ====================================================================
@@ -426,9 +440,19 @@
           </p>
         </div>
 
+        <div style="border-top:1px solid var(--border-subtle); padding-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Software Updates</h4>
+              <p style="font-size:12px; color:var(--text-muted);" id="settings-update-status">Current Version: v1.0.0</p>
+            </div>
+            <button class="btn-secondary btn-sm" onclick="checkUpdatesManual()">Check for Updates</button>
+          </div>
+        </div>
+
         <div>
           <h4 style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:4px;">About OptiForge</h4>
-          <p style="font-size:12px; color:var(--text-muted);">Version 1.0.0 &bull; Built with Python & modern web standards.</p>
+          <p style="font-size:12px; color:var(--text-muted);">Built with Python, Inno Setup & modern offline web standards.</p>
         </div>
       </div>
 
@@ -479,6 +503,67 @@
 
       <div class="modal-footer">
         <button class="btn-primary" onclick="closeWalkthroughModal()">Get Started</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ====================================================================
+       OTA Update Modal (Antigravity-Style Seamless 1-Click Update)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-updater" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="updater-modal-title">OptiForge Update</h3>
+          <p class="text-xs text-muted" id="updater-modal-sub" style="margin-top:2px;">Over-The-Air seamless application update</p>
+        </div>
+        <button class="btn-ghost" onclick="closeUpdateModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-control); padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:var(--text-muted);">Current Installed Version</div>
+            <div style="font-size:16px; font-weight:600; font-family:var(--font-mono); color:var(--text-main);" id="updater-current-ver">v1.0.0</div>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18" color="var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+          <div style="text-align:right;">
+            <div style="font-size:12px; color:var(--text-muted);">New Available Version</div>
+            <div style="font-size:16px; font-weight:600; font-family:var(--font-mono); color:var(--accent);" id="updater-new-ver">v1.0.1</div>
+          </div>
+        </div>
+
+        <div id="updater-notes-box">
+          <div style="font-size:12.5px; font-weight:600; margin-bottom:4px; color:var(--text-main);">Release Highlights:</div>
+          <div style="font-size:12px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border-subtle); border-radius:4px; padding:10px; max-height:140px; overflow-y:auto; line-height:1.5; font-family:var(--font-sans);" id="updater-release-notes">
+            Loading release details...
+          </div>
+        </div>
+
+        <!-- Progress Track (Shown during download) -->
+        <div id="updater-progress-container" style="display:none;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+            <span id="updater-progress-status">Downloading update...</span>
+            <span class="tabular font-mono" id="updater-progress-percent">0%</span>
+          </div>
+          <div class="progress-track" style="margin-bottom:6px;">
+            <div class="progress-fill" id="updater-progress-bar" style="width:0%; animation:none;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); text-align:right;" id="updater-progress-bytes">
+            0 MB / 0 MB
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" id="updater-footer">
+        <button class="btn-ghost" onclick="closeUpdateModal()">Later</button>
+        <button class="btn-primary" id="btn-start-update" onclick="startUpdateDownload()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download & Install Update
+        </button>
       </div>
     </div>
   </div>

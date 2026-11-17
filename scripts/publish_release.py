@@ -9,36 +9,35 @@ import urllib.request
 import urllib.error
 
 REPO = "Chane0704/OptiForge"
-TAG = "v1.0.0"
-TITLE = "OptiForge v1.0.0 — Windows Desktop App & Universal Optimizer Engine"
+TAG = "v1.0.1"
+TITLE = "OptiForge v1.0.1 — OTA 1-Click Updates & Sunburst Emblem"
 
-RELEASE_BODY = """## ⚡ OptiForge v1.0.0 — Official Windows Release
+RELEASE_BODY = """## ⚡ OptiForge v1.0.1 — OTA 1-Click Updates & Visual Refinements
 
-Welcome to the first official release of **OptiForge**, the universal performance and efficiency optimizer!
+Welcome to **OptiForge v1.0.1**! This update introduces seamless in-app Over-The-Air (OTA) 1-click updates, refreshed visual branding, and Windows icon cache synchronization.
 
 ### 📥 Direct Downloads
 
 | Package | Filename | Size | Description |
 | :--- | :--- | :--- | :--- |
-| **Windows Installer** | [`OptiForge-Setup-1.0.0.exe`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-Setup-1.0.0.exe) | ~25 MB | **Recommended.** Standalone installer. Installs per-user, adds Start Menu & Desktop shortcuts. No Python or admin rights needed. |
-| **Portable ZIP** | [`OptiForge-v1.0.0-windows-x64.zip`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-v1.0.0-windows-x64.zip) | ~33 MB | No installation required. Extract anywhere and launch `OptiForgeApp.exe`. |
-| **SHA-256 Checksums** | [`CHECKSUMS.txt`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/CHECKSUMS.txt) | Plaintext | Integrity verification hashes for all files. |
+| **Windows Installer** | [`OptiForge-Setup-1.0.1.exe`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.1/OptiForge-Setup-1.0.1.exe) | ~25 MB | **Recommended.** Standalone installer. Installs per-user, auto-refreshes desktop shortcuts. |
+| **Portable ZIP** | [`OptiForge-v1.0.1-windows-x64.zip`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.1/OptiForge-v1.0.1-windows-x64.zip) | ~34 MB | No installation required. Extract anywhere and launch `OptiForgeApp.exe`. |
+| **SHA-256 Checksums** | [`CHECKSUMS.txt`](https://github.com/Chane0704/OptiForge/releases/download/v1.0.1/CHECKSUMS.txt) | Plaintext | Cryptographic integrity verification hashes. |
 
 ---
 
-### 🌟 Highlights & Features
-- **Intuitive Desktop App**: Designed for non-technical users, vibe coders, and developers alike.
-- **Multi-Input Auto-Detection**: Drag & drop folders, select files, paste code snippets, or enter website URLs.
-- **Safe Auto-Fix & Rollback**: Dry-run by default, pre-fix snapshots, and one-command rollback with zero risk of data loss.
-- **AI Agent Hand-Off**: One-click ready-to-paste prompt generation for Claude Code, Antigravity, Cursor, and ChatGPT with automatic secret redaction.
-- **Universal Multi-Target Engine**: Audits website Core Web Vitals, OS process memory leaks, codebase dead code, unused dependencies, and byte-for-byte duplicate files.
+### 🌟 Highlights in v1.0.1
+- **Over-The-Air (OTA) 1-Click Updates**: In-app update notifications with live progress bar and seamless silent restart, just like Antigravity or Discord.
+- **Brand Identity**: Terracotta 8-spoke radial sunburst wheel emblem deployed across all UI surfaces, shortcuts, and installer.
+- **Windows Explorer Shell Cache Refresh**: Automatic `SHChangeNotify` call guarantees desktop icons update immediately upon setup without manual explorer restarts.
+- **Multi-Frame Windows Icon**: Multi-resolution `.ico` (16x16 up to 256x256) for crisp rendering across all Windows DPI scale factors.
 
 ---
 
 ### 🔒 Cryptographic Hashes (SHA-256)
 ```text
-e3c59210bf59e308c1abefecd5f20c62e984ef8ab926efb087293763f8cf9086  OptiForge-Setup-1.0.0.exe
-c8e0caedebad8bb24f0ec2d333424b97c8f6f5d5cc05038376a40b6b50f49460  OptiForge-v1.0.0-windows-x64.zip
+519a8bfce6fa5d257005e17efc0b11fbc283543e528c2150a0ae11a31f50a3bb  OptiForge-Setup-1.0.1.exe
+7ddbb56b2a6dc50b43e2ac229312601fa637e43670eb44ccc6c7cb4917abc022  OptiForge-v1.0.1-windows-x64.zip
 ```
 """
 

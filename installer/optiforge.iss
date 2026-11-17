@@ -1,6 +1,6 @@
 ; OptiForge Inno Setup Script
 #define MyAppName "OptiForge"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Chane0704"
 #define MyAppURL "https://github.com/Chane0704/OptiForge"
 #define MyAppExeName "OptiForgeApp.exe"
@@ -80,6 +80,22 @@ begin
               'Would you like to continue installation anyway?', mbConfirmation, MB_YESNO) = IDNO then
     begin
       Result := False;
+    end;
+  end;
+end;
+
+procedure SHChangeNotify(wEventId: Integer; uFlags: Cardinal; dwItem1, dwItem2: Integer);
+external 'SHChangeNotify@shell32.dll stdcall';
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    // Force Windows Explorer Shell to refresh desktop and taskbar icon cache immediately
+    try
+      SHChangeNotify($08000000, 0, 0, 0);
+    except
+      // Ignore if shell notification fails
     end;
   end;
 end;

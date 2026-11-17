@@ -69,7 +69,7 @@ def index():
 
 @app.route("/api/health")
 def api_health():
-    return {"status": "ok", "version": "1.0.0"}
+    return {"status": "ok", "version": "1.0.1"}
 
 
 @app.route("/favicon.ico")
@@ -379,3 +379,32 @@ def api_ai_explain():
         return session.ai_service.explain_finding(matching[0])
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ==============================================================================
+# Over-The-Air (OTA) 1-Click Update Endpoints
+# ==============================================================================
+
+@app.route("/api/updater/check", method="GET")
+def api_updater_check():
+    from optiforge.services import updater_service
+    return updater_service.check_for_updates()
+
+
+@app.route("/api/updater/download", method="POST")
+def api_updater_download():
+    from optiforge.services import updater_service
+    return updater_service.start_download()
+
+
+@app.route("/api/updater/status", method="GET")
+def api_updater_status():
+    from optiforge.services import updater_service
+    return updater_service.get_update_status()
+
+
+@app.route("/api/updater/apply", method="POST")
+def api_updater_apply():
+    from optiforge.services import updater_service
+    return updater_service.apply_update()
+

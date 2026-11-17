@@ -203,3 +203,55 @@ def test_full_ui_action_lifecycle(client):
     for asset in ("/", "/static/app.js", "/static/style.css", "/favicon.ico"):
         scode, _, _ = client.get(asset)
         assert scode == 200
+
+
+def test_updater_service_and_endpoints(client, monkeypatch):
+    """Verifies the Over-The-Air (OTA) update system and endpoints."""
+    from optiforge.services import updater_service
+    from optiforge.services.updater_service import parse_version_tuple
+
+    # 1. Semver parsing
+    assert parse_version_tuple("v1.0.1") > parse_version_tuple("v1.0.0")
+    assert parse_version_tuple("v2.0.0") > parse_version_tuple("v1.9.9")
+    assert parse_version_tuple("1.0.0") == parse_version_tuple("v1.0.0")
+
+    # 2. Mock GitHub API response
+    monkeypatch.setattr(updater_service, "CURRENT_VERSION", "1.0.0")
+    fake_release = {
+        "tag_name": "v1.0.1",
+        "name": "OptiForge v1.0.1 — OTA Release",
+        "body": "Bug fixes and improvements.",
+        "assets": [
+            {
+                "name": "OptiForge-Setup-1.0.1.exe",
+                "browser_download_url": "https://github.com/Chane0704/OptiForge/releases/download/v1.0.1/OptiForge-Setup-1.0.1.exe",
+                "size": 25000000,
+            }
+        ]
+    }
+
+    class FakeUrlopen:
+        def __init__(self, data):
+            self.data = json.dumps(data).encode("utf-8")
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def read(self, *args):
+            return self.data
+
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, *args, **kwargs: FakeUrlopen(fake_release))
+
+    # Test /api/updater/check
+    code, check_data, _ = client.get("/api/updater/check")
+    assert code == 200
+    assert check_data["success"] is True
+    assert check_data["update_available"] is True
+    assert check_data["latest_version"] == "1.0.1"
+
+    # Test /api/updater/status
+    code, status_data, _ = client.get("/api/updater/status")
+    assert code == 200
+    assert "status" in status_data
+    assert "progress_percent" in status_data
