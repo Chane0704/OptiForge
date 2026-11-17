@@ -5,6 +5,7 @@
 
 let appState = {
   currentScreen: 'home',
+  currentTargetPath: '',
   analysisResult: null,
   promptMode: 'fix_safe',
   promptDetail: 'detailed',
@@ -14,13 +15,30 @@ let appState = {
   theme: 'light'
 };
 
+const RECENT_PROJECTS_KEY = 'optiforge_recent_projects';
+const LAST_RESULT_KEY = 'optiforge_last_result';
+
 /* ==========================================================================
-   Initialization & Theme Supervisor
+   Initialization & Lifecycle Supervisor
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   setupDragAndDrop();
   setupKeyboardShortcuts();
+  renderRecentProjects();
+
+  // Handle URL query parameters (e.g. launched via CLI: OptiForgeApp.exe <folder>)
+  const params = new URLSearchParams(window.location.search);
+  const targetParam = params.get('target');
+  const isNew = params.get('new') === '1';
+
+  if (targetParam) {
+    // Auto-start analysis for folder passed on command line or context menu
+    startAnalysis(decodeURIComponent(targetParam));
+  } else if (!isNew) {
+    // Check if we have a persisted previous analysis result
+    restoreLastResult();
+  }
 });
 
 function initTheme() {
@@ -62,13 +80,18 @@ function setAppTheme(theme) {
 }
 
 /* ==========================================================================
-   Screen Transitions
+   Screen Transitions & State Restoration
    ========================================================================== */
-function showHomeScreen() {
+function showHomeScreen(userInitiated = false) {
   appState.currentScreen = 'home';
   document.getElementById('screen-home').style.display = 'flex';
   document.getElementById('screen-analyzing').style.display = 'none';
   document.getElementById('screen-results').style.display = 'none';
+  renderRecentProjects();
+  if (userInitiated) {
+    // When user explicitly clicks "Analyze another project", clear last result cache
+    localStorage.removeItem(LAST_RESULT_KEY);
+  }
 }
 
 function showAnalyzingScreen(targetName = '') {
@@ -82,11 +105,10 @@ function showAnalyzingScreen(targetName = '') {
     statusText.textContent = targetName ? `Auditing "${targetName}"...` : 'Inspecting dependencies, code structure, assets, and runtime performance.';
   }
 
-  // Simulate calm step progression
   resetSteps();
-  setTimeout(() => setStepActive(2), 500);
-  setTimeout(() => setStepActive(3), 1100);
-  setTimeout(() => setStepActive(4), 1700);
+  setTimeout(() => setStepActive(2), 400);
+  setTimeout(() => setStepActive(3), 900);
+  setTimeout(() => setStepActive(4), 1400);
 }
 
 function showResultsScreen() {
@@ -105,9 +127,7 @@ function cancelAnalysis() {
 function resetSteps() {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById(`step-${i}`);
-    if (el) {
-      el.className = i === 1 ? 'step-item active' : 'step-item';
-    }
+    if (el) el.className = i === 1 ? 'step-item active' : 'step-item';
   }
 }
 
@@ -120,8 +140,67 @@ function setStepActive(stepNum) {
   if (curr) curr.className = 'step-item active';
 }
 
+function restoreLastResult() {
+  try {
+    const cached = localStorage.getItem(LAST_RESULT_KEY);
+    if (cached) {
+      const result = JSON.parse(cached);
+      if (result && result.target_name) {
+        appState.analysisResult = result;
+        appState.currentTargetPath = result.target_path || '';
+        renderResults(result);
+        showResultsScreen();
+      }
+    }
+  } catch (e) {
+    console.warn('Could not restore last analysis:', e);
+  }
+}
+
 /* ==========================================================================
-   Drag & Drop and Input Handlers
+   Native Windows Dialogs (Zero Chromium Upload Popups)
+   ========================================================================== */
+async function browseNative(dialogType) {
+  const lastFolder = localStorage.getItem('optiforge_last_folder') || '';
+  try {
+    const resp = await fetch('/api/dialog/pick', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dialog_type: dialogType,
+        initial_dir: lastFolder
+      })
+    });
+    const data = await resp.json();
+    if (data.success && data.path) {
+      // Save last folder
+      let dir = data.path;
+      if (dialogType !== 'folder') {
+        const lastSlash = Math.max(dir.lastIndexOf('\\'), dir.lastIndexOf('/'));
+        if (lastSlash > 0) dir = dir.substring(0, lastSlash);
+      }
+      localStorage.setItem('optiforge_last_folder', dir);
+      startAnalysis(data.path);
+    }
+  } catch (err) {
+    showToast(`Dialog error: ${err.message}`);
+  }
+}
+
+function triggerFolderSelect() {
+  browseNative('folder');
+}
+
+function triggerFileSelect() {
+  browseNative('file');
+}
+
+function triggerImageSelect() {
+  browseNative('image');
+}
+
+/* ==========================================================================
+   Drag & Drop Handlers
    ========================================================================== */
 function setupDragAndDrop() {
   const dropArea = document.getElementById('drop-area');
@@ -146,35 +225,12 @@ function setupDragAndDrop() {
   dropArea.addEventListener('drop', (e) => {
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length > 0) {
-      // Pick first file/folder path if available or fallback to name
       const file = dt.files[0];
+      // On desktop webview, file.path contains full local filesystem path
       const targetPath = file.path || file.name;
       startAnalysis(targetPath);
     }
   }, false);
-}
-
-function triggerFolderSelect() {
-  const input = document.getElementById('file-input-folder');
-  if (input) input.click();
-}
-
-function triggerFileSelect() {
-  const input = document.getElementById('file-input-files');
-  if (input) input.click();
-}
-
-function triggerImageSelect() {
-  const input = document.getElementById('file-input-images');
-  if (input) input.click();
-}
-
-function handleFileChosen(e) {
-  if (e.target.files && e.target.files.length > 0) {
-    const file = e.target.files[0];
-    const path = file.path || file.name;
-    startAnalysis(path);
-  }
 }
 
 function startAnalysisFromInput() {
@@ -192,10 +248,94 @@ function analyzeSampleProject() {
 }
 
 /* ==========================================================================
-   Core Analysis Execution
+   Recent Projects Manager (Local Persistence)
+   ========================================================================== */
+function getRecentProjects() {
+  try {
+    const raw = localStorage.getItem(RECENT_PROJECTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecentProject(result) {
+  if (!result || !result.target_path) return;
+  let recents = getRecentProjects();
+  // Filter out existing by path
+  recents = recents.filter(r => r.path !== result.target_path);
+  // Add newest to front
+  recents.unshift({
+    name: result.target_name || 'Project',
+    path: result.target_path,
+    score: Math.round(result.health_score || 0),
+    tech_stack: result.tech_stack || 'General',
+    analyzed_at: result.analyzed_at || new Date().toLocaleDateString()
+  });
+  // Cap at 8 recent projects
+  recents = recents.slice(0, 8);
+  localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(recents));
+  renderRecentProjects();
+}
+
+function removeRecentProject(targetPath, event) {
+  if (event) event.stopPropagation();
+  let recents = getRecentProjects();
+  recents = recents.filter(r => r.path !== targetPath);
+  localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(recents));
+  renderRecentProjects();
+}
+
+function clearRecentProjects() {
+  localStorage.removeItem(RECENT_PROJECTS_KEY);
+  renderRecentProjects();
+  showToast('Recent projects history cleared.');
+}
+
+function renderRecentProjects() {
+  const container = document.getElementById('recent-projects-container');
+  const list = document.getElementById('recent-projects-list');
+  if (!container || !list) return;
+
+  const recents = getRecentProjects();
+  if (recents.length === 0) {
+    container.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+
+  container.style.display = 'block';
+  list.innerHTML = '';
+
+  recents.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'recent-project-card';
+    card.onclick = () => startAnalysis(p.path);
+    card.innerHTML = `
+      <div class="recent-project-left">
+        <div class="recent-project-name">${escapeHtml(p.name)}</div>
+        <div class="recent-project-path">${escapeHtml(p.path)}</div>
+      </div>
+      <div class="recent-project-right">
+        <span class="recent-score-pill">${p.score}/100</span>
+        <button class="btn-ghost btn-sm" onclick="startAnalysis('${escapeHtml(p.path)}')" title="Re-analyze this project">
+          Re-analyze
+        </button>
+        <button class="btn-ghost btn-sm" style="color:var(--text-muted); padding:4px 6px;" onclick="removeRecentProject('${escapeHtml(p.path)}', event)" title="Remove from recent list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+/* ==========================================================================
+   Core Analysis Execution & Target Override
    ========================================================================== */
 async function startAnalysis(rawInput) {
   showAnalyzingScreen(rawInput);
+  appState.currentTargetPath = rawInput;
 
   try {
     const response = await fetch('/api/analyze', {
@@ -207,55 +347,166 @@ async function startAnalysis(rawInput) {
     const data = await response.json();
     if (!data.success) {
       showHomeScreen();
-      showToast(data.error || 'Analysis failed. Please check the target path.');
+      showToast(data.error || 'Analysis failed. Please verify the target path.');
       return;
     }
 
     appState.analysisResult = data.result;
+    appState.currentTargetPath = data.result.target_path || rawInput;
+
+    // Persist to localStorage
+    saveRecentProject(data.result);
+    try {
+      localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(data.result));
+    } catch (e) {
+      // quota or private mode
+    }
+
     renderResults(data.result);
     showResultsScreen();
   } catch (err) {
     showHomeScreen();
-    showToast(`Network or server error: ${err.message}`);
+    showToast(`Analysis request error: ${err.message}`);
+  }
+}
+
+function reanalyzeCurrentTarget() {
+  if (appState.currentTargetPath) {
+    startAnalysis(appState.currentTargetPath);
+  } else if (appState.analysisResult && appState.analysisResult.target_path) {
+    startAnalysis(appState.analysisResult.target_path);
+  } else {
+    showHomeScreen();
+  }
+}
+
+async function overrideTarget(forcedKind) {
+  if (!appState.currentTargetPath) return;
+  showAnalyzingScreen(`Forcing target type: ${forcedKind}`);
+
+  try {
+    const resp = await fetch('/api/override-target', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: appState.currentTargetPath,
+        kind: forcedKind
+      })
+    });
+    const data = await resp.json();
+    if (data.success && data.result) {
+      appState.analysisResult = data.result;
+      saveRecentProject(data.result);
+      localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(data.result));
+      renderResults(data.result);
+      showResultsScreen();
+      showToast(`Target re-evaluated as ${forcedKind}.`);
+    } else {
+      showToast(`Could not override: ${data.error || 'Unknown error'}`);
+      showResultsScreen();
+    }
+  } catch (err) {
+    showToast(`Override error: ${err.message}`);
+    showResultsScreen();
   }
 }
 
 /* ==========================================================================
-   Results Rendering (Hero, Accounting, Grouped Cards)
+   Results Rendering (Real Metrics, Measured vs Estimated, Verified Identity)
    ========================================================================== */
 function renderResults(result) {
-  // 1. Headline & Metadata
-  document.getElementById('res-summary-headline').textContent = result.one_line_summary;
-  document.getElementById('res-target-name').textContent = result.detected_input ? result.detected_input.friendly_label : 'Target';
+  // 1. Identity & Metadata
+  document.getElementById('res-target-name').textContent = result.target_name || (result.detected_input ? result.detected_input.friendly_label : 'Project');
   
+  const pathEl = document.getElementById('res-target-path');
+  if (pathEl) {
+    pathEl.textContent = result.target_path || 'Target';
+  }
+
+  const techEl = document.getElementById('res-tech-stack');
+  if (techEl) {
+    techEl.textContent = result.tech_stack || 'General';
+  }
+
+  const analyzedEl = document.getElementById('res-analyzed-at');
+  if (analyzedEl) {
+    analyzedEl.textContent = result.analyzed_at || 'Just now';
+  }
+
+  const itemsEl = document.getElementById('res-item-count');
+  if (itemsEl) {
+    itemsEl.textContent = `${result.item_count || 0} items`;
+  }
+
+  const sizeEl = document.getElementById('res-current-size');
+  if (sizeEl) {
+    sizeEl.textContent = `${result.target_size_mb || '0.00'} MB`;
+  }
+
+  const detectedTypeEl = document.getElementById('res-detected-type');
+  if (detectedTypeEl) {
+    const kind = result.detected_input ? result.detected_input.kind : 'codebase';
+    detectedTypeEl.textContent = kind.charAt(0).toUpperCase() + kind.slice(1);
+  }
+
   const totalFindings = (result.quick_wins ? result.quick_wins.length : 0) +
                         (result.worth_doing ? result.worth_doing.length : 0) +
                         (result.optional ? result.optional.length : 0);
   document.getElementById('res-findings-count').textContent = totalFindings;
 
-  // 2. Score
+  // 2. Health Score
   const score = Math.round(result.health_score || 0);
   document.getElementById('res-health-score').innerHTML = `${score}<span class="score-denom">/100</span>`;
   document.getElementById('res-health-ring').textContent = `${score}%`;
 
-  // 3. Accounting Metrics
+  // 3. Accounting Metrics (Properly Labeled Measured vs Estimated)
   document.getElementById('res-savings-mb').textContent = `${result.total_savings_mb} MB`;
-  document.getElementById('res-speed-gain').textContent = result.estimated_speed_gain || '~350 ms';
 
-  const safeCount = (result.quick_wins ? result.quick_wins.filter(f => f.safety_badge === 'Safe').length : 0) +
-                    (result.worth_doing ? result.worth_doing.filter(f => f.safety_badge === 'Safe').length : 0);
+  const speedEl = document.getElementById('res-speed-gain');
+  const speedTag = document.getElementById('res-speed-tag');
+  if (speedEl) {
+    speedEl.textContent = result.estimated_speed_gain || 'Optimal';
+  }
+  if (speedTag) {
+    if (result.speed_gain_source === 'measured') {
+      speedTag.textContent = '[Measured]';
+    } else if (result.speed_gain_source === 'varies') {
+      speedTag.textContent = '[Varies]';
+    } else {
+      speedTag.textContent = '[Estimated]';
+    }
+  }
+
+  const safeCount = result.safe_fixes_count !== undefined ? result.safe_fixes_count :
+                    ((result.quick_wins ? result.quick_wins.filter(f => f.safety_badge === 'Safe').length : 0) +
+                     (result.worth_doing ? result.worth_doing.filter(f => f.safety_badge === 'Safe').length : 0));
   document.getElementById('res-safe-fixes').textContent = `${safeCount} items`;
   document.getElementById('res-btn-fix-count').textContent = safeCount;
 
-  // Hide or show fix button if safeCount is 0
   const btnFix = document.getElementById('btn-fix-safe');
   if (btnFix) {
     btnFix.style.display = safeCount > 0 ? 'inline-flex' : 'none';
   }
 
-  // 4. Render Grouped Findings
+  // 4. Render Grouped Findings or Friendly Empty State
   const container = document.getElementById('findings-container');
   container.innerHTML = '';
+
+  if (totalFindings === 0) {
+    container.innerHTML = `
+      <div class="empty-findings-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+        <h4 class="empty-findings-title">Clean Bill of Health</h4>
+        <p class="empty-findings-desc">
+          OptiForge scanned <strong>${result.item_count || 0} items</strong> across "${escapeHtml(result.target_name || 'Project')}". No memory leaks, dead libraries, redundant assets, or performance bottlenecks were detected. Everything is operating efficiently.
+        </p>
+      </div>
+    `;
+    return;
+  }
 
   renderGroup(container, 'Quick wins (high gain, low effort)', result.quick_wins || [], 'safe');
   renderGroup(container, 'Worth doing (substantial impact)', result.worth_doing || [], 'warn');
@@ -301,6 +552,15 @@ function createFindingCard(finding) {
     badgeLabel = 'Be careful';
   }
 
+  // Display exact file path and line number if available
+  const filePathStr = finding.file_path 
+    ? `${finding.file_path}${finding.line_number ? ':' + finding.line_number : ''}` 
+    : 'Entire project';
+
+  // Gain tag (Measured vs Estimated)
+  const isGainMeasured = finding.gain_type === 'measured' || (finding.estimated_savings_bytes && finding.estimated_savings_bytes > 0);
+  const gainTag = isGainMeasured ? '<span class="metric-tag">[Measured]</span>' : '<span class="metric-tag">[Estimated]</span>';
+
   card.innerHTML = `
     <div class="finding-card-top">
       <div class="finding-main-content">
@@ -313,10 +573,11 @@ function createFindingCard(finding) {
           <div class="finding-metric-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <span class="tabular font-medium text-main">${escapeHtml(finding.estimated_gain)}</span>
+            ${gainTag}
           </div>
-          <div class="finding-metric-item">
+          <div class="finding-metric-item" title="${escapeHtml(filePathStr)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span>${escapeHtml(finding.file_path || 'Entire project')}</span>
+            <span style="font-family:var(--font-mono); font-size:11.5px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(filePathStr)}</span>
           </div>
         </div>
       </div>
@@ -336,12 +597,14 @@ function createFindingCard(finding) {
       <div style="font-weight:600; color:var(--text-main); margin-bottom:4px;">Technical Diagnosis</div>
       <div>${escapeHtml(finding.what_to_do)}</div>
       <div class="tech-details-grid">
+        <span class="tech-key">Target File:</span>
+        <span class="tech-val font-mono" style="word-break:break-all;">${escapeHtml(filePathStr)}</span>
         <span class="tech-key">Category:</span>
         <span class="tech-val">${escapeHtml(finding.category || 'Efficiency')}</span>
         <span class="tech-key">Impact / Effort:</span>
         <span class="tech-val">${escapeHtml(finding.impact || 'High')} / ${escapeHtml(finding.effort || 'Low')}</span>
         <span class="tech-key">Identifier:</span>
-        <span class="tech-val">${escapeHtml(finding.id)}</span>
+        <span class="tech-val font-mono">${escapeHtml(finding.id)}</span>
       </div>
     </div>
   `;
@@ -359,6 +622,34 @@ function toggleAdvanced(id) {
       chevron.style.transition = 'transform 150ms ease';
     }
   }
+}
+
+/* ==========================================================================
+   Health Score Formula Explanation Modal
+   ========================================================================== */
+function openFormulaModal() {
+  const modal = document.getElementById('modal-formula');
+  const details = document.getElementById('formula-breakdown-details');
+  if (!modal) return;
+
+  if (details && appState.analysisResult) {
+    const r = appState.analysisResult;
+    const formula = r.health_score_formula || 'Health Score = 100 - penalties (min floor 10)';
+    details.innerHTML = `
+      <div style="margin-top:8px;">
+        <strong>Active Project Calculation:</strong>
+        <div style="font-family:var(--font-mono); font-size:11.5px; margin-top:4px; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:4px;">
+          ${escapeHtml(formula)}
+        </div>
+      </div>
+    `;
+  }
+  modal.classList.add('open');
+}
+
+function closeFormulaModal() {
+  const modal = document.getElementById('modal-formula');
+  if (modal) modal.classList.remove('open');
 }
 
 /* ==========================================================================
@@ -499,7 +790,7 @@ async function openFixPreviewModal() {
         <div style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto;">
       `;
 
-      data.proposals.forEach((p, idx) => {
+      data.proposals.forEach((p) => {
         const mb = (p.estimated_savings_bytes / (1024 * 1024)).toFixed(2);
         html += `
           <div style="background-color:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-control); padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
@@ -576,7 +867,7 @@ async function applySafeFixes() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             Undo All Changes (Rollback)
           </button>
-          <button class="btn-primary" onclick="closeFixPreviewModal(); startAnalysis('${appState.analysisResult ? appState.analysisResult.detected_input.friendly_label : ''}');">
+          <button class="btn-primary" onclick="closeFixPreviewModal(); reanalyzeCurrentTarget();">
             Refresh Report
           </button>
         `;

@@ -1,0 +1,21 @@
+/* Minimal Project Stylesheet */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 40px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.button {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333333;
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+}

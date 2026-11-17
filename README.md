@@ -4,7 +4,7 @@
 [![Download Windows Installer](https://img.shields.io/badge/Download-Windows%20Setup%20(.exe)-brightgreen?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-Setup-1.0.0.exe)
 [![Download Portable Zip](https://img.shields.io/badge/Download-Portable%20(.zip)-blue?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-v1.0.0-windows-x64.zip)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
-[![Tests Passing](https://img.shields.io/badge/Tests-35%20Passed-success?style=for-the-badge)](https://github.com/Chane0704/OptiForge)
+[![Tests Passing](https://img.shields.io/badge/Tests-37%20Passed-success?style=for-the-badge)](https://github.com/Chane0704/OptiForge)
 
 > **OptiForge** is an extensible, industry-grade performance analysis and optimization engine. It audits websites, local processes, and codebases to diagnose bottlenecks, eliminate bloat, prioritize fixes by ROI (Impact vs. Effort), and safely apply reversible optimizations with zero risk of data loss.
 
@@ -69,7 +69,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/OptiForge.git
+git clone https://github.com/Chane0704/OptiForge.git
 cd OptiForge
 
 # Install in development mode

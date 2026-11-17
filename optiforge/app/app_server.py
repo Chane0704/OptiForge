@@ -72,6 +72,14 @@ def api_health():
     return {"status": "ok", "version": "1.0.0"}
 
 
+@app.route("/favicon.ico")
+def serve_favicon():
+    icon_path = Path(__file__).resolve().parent.parent.parent / "optiforge.ico"
+    if not icon_path.exists():
+        icon_path = STATIC_DIR / "optiforge.ico"
+    return bottle.static_file(icon_path.name, root=str(icon_path.parent))
+
+
 @app.route("/static/<filepath:path>")
 def serve_static(filepath):
     return bottle.static_file(filepath, root=str(STATIC_DIR))
@@ -240,38 +248,66 @@ def api_fix_rollback():
 
 @app.route("/api/dialog/pick", method="POST")
 def api_dialog_pick():
-    """Triggers native OS file/folder picker dialog."""
+    """Triggers native OS file/folder picker dialog with zero browser upload prompts."""
     try:
         data = bottle.request.json or {}
         dialog_type = data.get("dialog_type", "folder")
+        initial_dir = data.get("initial_dir", "")
 
         # 1. If pywebview window exists, use native webview file dialog
         if session.webview_window:
             import webview
+            folder_mode = getattr(webview, "FileDialog", None)
+            folder_flag = getattr(folder_mode, "FOLDER", webview.FOLDER_DIALOG) if folder_mode else webview.FOLDER_DIALOG
+            open_flag = getattr(folder_mode, "OPEN", webview.OPEN_DIALOG) if folder_mode else webview.OPEN_DIALOG
+
             if dialog_type == "folder":
-                result = session.webview_window.create_file_dialog(webview.FOLDER_DIALOG)
+                result = session.webview_window.create_file_dialog(folder_flag, directory=initial_dir or "")
             elif dialog_type == "images":
                 result = session.webview_window.create_file_dialog(
-                    webview.OPEN_DIALOG,
+                    open_flag,
+                    directory=initial_dir or "",
                     allow_multiple=True,
-                    file_types=("Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.webp)", "All Files (*.*)")
+                    file_types=("Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.webp;*.svg)", "All Files (*.*)")
                 )
             else:  # files
-                result = session.webview_window.create_file_dialog(webview.OPEN_DIALOG, allow_multiple=True)
+                result = session.webview_window.create_file_dialog(open_flag, directory=initial_dir or "", allow_multiple=True)
 
             if result:
                 selected = result[0] if len(result) == 1 else list(result)
                 return {"success": True, "selected": selected}
             return {"success": False, "cancelled": True}
 
-        # 2. Fallback using PowerShell on Windows
+        # 2. Fallback using PowerShell on Windows (runs with CREATE_NO_WINDOW)
         if os.name == "nt":
+            init_folder_stmt = f"$d.SelectedPath = '{initial_dir}'; " if initial_dir and Path(initial_dir).exists() else ""
             if dialog_type == "folder":
-                cmd = "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $d = New-Object System.Windows.Forms.FolderBrowserDialog; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }"
+                cmd = (
+                    "Add-Type -AssemblyName System.Windows.Forms; "
+                    "$d = New-Object System.Windows.Forms.FolderBrowserDialog; "
+                    "$d.Description = 'Select project folder to optimize with OptiForge'; "
+                    "$d.ShowNewFolderButton = $false; "
+                    f"{init_folder_stmt}"
+                    "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.SelectedPath }"
+                )
             else:
-                cmd = "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Multiselect = $true; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.FileNames }"
+                filter_str = "Images (*.png;*.jpg;*.bmp;*.webp)|*.png;*.jpg;*.jpeg;*.bmp;*.webp|All Files (*.*)|*.*" if dialog_type == "images" else "All Files (*.*)|*.*"
+                cmd = (
+                    "Add-Type -AssemblyName System.Windows.Forms; "
+                    "$d = New-Object System.Windows.Forms.OpenFileDialog; "
+                    "$d.Multiselect = $true; "
+                    f"$d.Filter = '{filter_str}'; "
+                    "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileNames }"
+                )
 
-            proc = subprocess.run(["powershell", "-NoProfile", "-Command", cmd], capture_output=True, text=True, timeout=30)
+            no_win = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            proc = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                creationflags=no_win
+            )
             paths = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
             if paths:
                 selected = paths[0] if len(paths) == 1 else paths
@@ -280,6 +316,28 @@ def api_dialog_pick():
         return {"success": False, "cancelled": True}
     except Exception as e:
         logger.error(f"Dialog error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.route("/api/override-target", method="POST")
+def api_override_target():
+    """Allows one-click user correction of detected type ('folder', 'website', 'files')."""
+    try:
+        data = bottle.request.json or {}
+        forced_kind = data.get("forced_kind", "folder")
+
+        if session.latest_result and session.latest_result.detected_input:
+            InputDetector.override_kind(session.latest_result.detected_input, forced_kind)
+            config = OptiConfig.load()
+            result = AnalysisService.analyze(session.latest_result.detected_input, config=config)
+            session.latest_result = result
+            session.active_target = result.detected_input.target
+            session.latest_proposals = AnalysisService.get_fix_proposals(
+                result.detected_input.target, result.all_findings, config=config
+            )
+            return {"success": True, "result": result.to_dict()}
+        return {"success": False, "error": "No active analysis to override."}
+    except Exception as e:
         return {"success": False, "error": str(e)}
 
 

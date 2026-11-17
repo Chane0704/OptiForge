@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OptiForge — Universal Performance & Efficiency</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +14,6 @@
   <header class="topbar">
     <div class="brand-group" onclick="showHomeScreen()">
       <div class="brand-emblem">
-        <!-- Artisan Forge Emblem SVG -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
@@ -47,57 +47,51 @@
       <div class="hero-block">
         <h1 class="hero-title">Drop in a project. We'll show you what's slowing it down.</h1>
         <p class="hero-subtitle">
-          Analyze folders, code repositories, oversized images, or enter a website URL. Everything runs 100% locally on your machine with zero data transmission.
+          Analyze local folders, codebases, oversized images, or enter a website URL. Everything runs 100% locally on your machine with zero data transmission.
         </p>
       </div>
 
-      <!-- Main Drag & Drop Zone -->
-      <div class="dropzone" id="drop-area" onclick="triggerFolderSelect()">
+      <!-- Main Native Folder & File Selection (NO CHROMIUM UPLOAD POPUPS) -->
+      <div class="dropzone" id="drop-area" onclick="browseNative('folder')">
         <div class="dropzone-icon-box">
-          <!-- Pure Lucide SVG line icon (Upload / Folder) -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
             <path d="M12 10v6m-3-3 3-3 3 3"/>
           </svg>
         </div>
-        <div class="dropzone-heading">Drag and drop your project here</div>
-        <div class="dropzone-hint">Folders, files, or pictures. Or select an option below:</div>
+        <div class="dropzone-heading">Select or drop your project here</div>
+        <div class="dropzone-hint">Opens your native Windows file picker. No browser upload prompts.</div>
 
         <div class="dropzone-actions" onclick="event.stopPropagation()">
-          <button class="btn-primary" onclick="triggerFolderSelect()">
+          <button class="btn-primary" onclick="browseNative('folder')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
             Choose Folder
           </button>
-          <button class="btn-secondary" onclick="triggerFileSelect()">
+          <button class="btn-secondary" onclick="browseNative('files')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
             Select Files
           </button>
-          <button class="btn-secondary" onclick="triggerImageSelect()">
+          <button class="btn-secondary" onclick="browseNative('images')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
             Add Images
           </button>
         </div>
-
-        <!-- Hidden input elements -->
-        <input type="file" id="file-input-folder" webkitdirectory directory multiple style="display:none;" onchange="handleFileChosen(event)">
-        <input type="file" id="file-input-files" multiple style="display:none;" onchange="handleFileChosen(event)">
-        <input type="file" id="file-input-images" accept="image/*" multiple style="display:none;" onchange="handleFileChosen(event)">
       </div>
 
-      <!-- Alternative Input: URL or Code Snippet -->
+      <!-- Alternative Input: URL or Manual Path -->
       <div class="input-row">
         <div class="input-field-wrapper">
           <div class="input-icon-prefix">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
           </div>
-          <input type="text" id="target-input-text" class="text-input" placeholder="Or enter a website URL (e.g. https://example.com) or paste a file path..." onkeydown="if(event.key==='Enter') startAnalysisFromInput()">
+          <input type="text" id="target-input-text" class="text-input" placeholder="Or enter a website URL (https://...) or paste a full folder path..." onkeydown="if(event.key==='Enter') startAnalysisFromInput()">
         </div>
         <button class="btn-secondary" onclick="startAnalysisFromInput()">
           Analyze
         </button>
       </div>
 
-      <!-- Supported Targets Strip & Quick Sample Link -->
+      <!-- Capability Badges & Quick Sample Link -->
       <div class="feature-strip">
         <span class="feature-pill">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -118,6 +112,17 @@
         <button class="sample-link" onclick="analyzeSampleProject()">
           Try with sample bloated project &rarr;
         </button>
+      </div>
+
+      <!-- Recent Projects Section (Persisted Locally) -->
+      <div id="recent-projects-container" style="margin-top:36px; display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted);">
+            Recent Projects
+          </span>
+          <button class="sample-link" style="font-size:11.5px;" onclick="clearRecentProjects()">Clear History</button>
+        </div>
+        <div id="recent-projects-list" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
     </section>
 
@@ -165,17 +170,38 @@
          ==================================================================== -->
     <section id="screen-results" style="display:none;">
       
-      <!-- Hero Scorecard -->
+      <!-- Hero Scorecard & Project Identity Details -->
       <div class="results-header-card">
         <div class="results-hero-row">
           <div class="results-hero-left">
-            <div class="results-meta-label">Optimization Overview</div>
-            <h2 class="results-headline" id="res-summary-headline">
-              Your project could be 2.4 MB smaller and load faster.
-            </h2>
-            <div class="results-subtext">
-              Target: <span class="results-target-pill" id="res-target-name">sample_bloated_project</span> &bull;
-              <span id="res-findings-count">8</span> findings prioritized by ROI
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span class="results-meta-label" style="margin-bottom:0;">Project Overview</span>
+              <span class="badge" style="background:var(--surface-subtle); color:var(--text-muted); font-size:11px;" id="res-tech-stack">General</span>
+            </div>
+
+            <!-- Project Name -->
+            <h2 class="results-headline" id="res-target-name">Project</h2>
+
+            <!-- Exact File Path on Disk -->
+            <div style="font-size:11.5px; font-family:var(--font-mono); color:var(--text-muted); word-break:break-all; margin-bottom:8px;" id="res-target-path">
+              Path
+            </div>
+
+            <!-- Measured Scope (X files, Y MB, analyzed date) -->
+            <div class="results-subtext" style="display:flex; align-items:center; flex-wrap:wrap; gap:12px;">
+              <span><strong class="tabular" id="res-item-count">0 files</strong> scanned (<strong class="tabular" id="res-current-size">0 MB</strong>)</span>
+              <span>&bull;</span>
+              <span id="res-analyzed-at">Analyzed today</span>
+              <span>&bull;</span>
+              <span id="res-findings-count">0</span> findings
+            </div>
+
+            <!-- One-Click Correction Bar ("Treat this as: Project / Website / Single file") -->
+            <div style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11.5px; color:var(--text-muted);">
+              <span>Detected as <strong id="res-detected-type">Project</strong>. Treat as:</span>
+              <button class="btn-ghost btn-sm" onclick="overrideTarget('folder')">Folder</button>
+              <button class="btn-ghost btn-sm" onclick="overrideTarget('website')">Website</button>
+              <button class="btn-ghost btn-sm" onclick="overrideTarget('files')">Single file</button>
             </div>
           </div>
 
@@ -184,26 +210,29 @@
             <div class="score-text-group">
               <div class="score-label">Health Score</div>
               <div class="score-number tabular" id="res-health-score">
-                82<span class="score-denom">/100</span>
+                100<span class="score-denom">/100</span>
               </div>
+              <button class="sample-link" style="font-size:11px; margin-top:4px;" onclick="openFormulaModal()">
+                How is this calculated?
+              </button>
             </div>
-            <div class="score-ring tabular" id="res-health-ring">82%</div>
+            <div class="score-ring tabular" id="res-health-ring">100%</div>
           </div>
         </div>
 
-        <!-- Savings Accounting Strip -->
+        <!-- Savings Accounting Strip (Every Number Labeled as Measured vs Estimated) -->
         <div class="metrics-strip">
           <div>
-            <span class="metric-col-label">Potential Space Saved</span>
-            <span class="metric-col-val tabular" id="res-savings-mb">2.42 MB</span>
+            <span class="metric-col-label">Potential Space Saved <span style="font-size:10px; opacity:0.75;">[Measured]</span></span>
+            <span class="metric-col-val tabular" id="res-savings-mb">0 MB</span>
           </div>
           <div>
-            <span class="metric-col-label">Load Time Gain</span>
-            <span class="metric-col-val tabular" id="res-speed-gain">~420 ms</span>
+            <span class="metric-col-label">Latency / Load Gain <span style="font-size:10px; opacity:0.75;" id="res-speed-tag">[Estimated]</span></span>
+            <span class="metric-col-val tabular" id="res-speed-gain">0 ms</span>
           </div>
           <div>
-            <span class="metric-col-label">Safe to Auto-Fix</span>
-            <span class="metric-col-val safe-accent tabular" id="res-safe-fixes">5 items</span>
+            <span class="metric-col-label">Safe to Auto-Fix <span style="font-size:10px; opacity:0.75;">[Measured]</span></span>
+            <span class="metric-col-val safe-accent tabular" id="res-safe-fixes">0 items</span>
           </div>
         </div>
       </div>
@@ -213,17 +242,21 @@
         <div class="action-buttons-group">
           <button class="btn-primary" id="btn-fix-safe" onclick="openFixPreviewModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Let OptiForge fix safe items (<span id="res-btn-fix-count">5</span>)
+            Let OptiForge fix safe items (<span id="res-btn-fix-count">0</span>)
           </button>
           <button class="btn-secondary" onclick="openPromptModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
             Copy prompt for AI agent
           </button>
+          <button class="btn-secondary" onclick="reanalyzeCurrentTarget()" title="Re-run diagnostics on this exact project">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.8 1.03 6.44 2.7l3.56 3.3"/><polyline points="21 3 21 9 15 9"/></svg>
+            Re-analyze
+          </button>
         </div>
 
-        <button class="btn-ghost" onclick="showHomeScreen()">
+        <button class="btn-ghost" onclick="showHomeScreen(true)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          New analysis
+          Analyze another project
         </button>
       </div>
 
@@ -234,6 +267,42 @@
     </section>
 
   </main>
+
+
+  <!-- ====================================================================
+       MODAL: Health Score Formula Explanation
+       ==================================================================== -->
+  <div class="modal-backdrop" id="modal-formula" onclick="closeAllModals(event)">
+    <div class="modal-window" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">How the Health Score is Calculated</h3>
+        <button class="btn-ghost" onclick="closeFormulaModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:14px;">
+        <p>OptiForge computes your Health Score using a deterministic, documented penalty formula based on verified diagnostics:</p>
+        <div style="background:var(--surface-subtle); border:1px solid var(--border); padding:12px; border-radius:var(--radius-control); font-family:var(--font-mono); font-size:12px; line-height:1.6;">
+          Health Score = 100 - (High &times; 12 + Medium &times; 6 + Low &times; 2)<br>
+          <span style="color:var(--text-muted); font-size:11px;">Minimum score floor: 10 / 100</span>
+        </div>
+        <div>
+          <div style="font-weight:600; color:var(--text-main); margin-bottom:4px;">Severity Weightings:</div>
+          <ul style="padding-left:18px; display:flex; flex-direction:column; gap:4px; font-size:12.5px;">
+            <li><strong>High Impact (-12 pts):</strong> Memory leaks, hot loops, parser-blocking assets, and heavy dead libraries.</li>
+            <li><strong>Medium Impact (-6 pts):</strong> Uncompressed images, identical duplicate files, slow TTFB, layout shifts (CLS).</li>
+            <li><strong>Low Impact (-2 pts):</strong> Unminified scripts, minor unused CSS rules, small asset redundancies.</li>
+          </ul>
+        </div>
+        <div id="formula-breakdown-details" style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border-subtle); pt-2;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeFormulaModal()">Understood</button>
+      </div>
+    </div>
+  </div>
 
 
   <!-- ====================================================================
@@ -252,14 +321,12 @@
       </div>
 
       <div class="modal-body">
-        <!-- Prompt Mode Tabs -->
         <div class="mode-tabs">
           <button class="mode-tab-btn active" id="mode-tab-fix_safe" onclick="setPromptMode('fix_safe')">Fix safe items only</button>
           <button class="mode-tab-btn" id="mode-tab-fix_all" onclick="setPromptMode('fix_all')">Fix everything</button>
           <button class="mode-tab-btn" id="mode-tab-explain" onclick="setPromptMode('explain')">Explain step-by-step</button>
         </div>
 
-        <!-- Detail Level Switcher -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:12px;">
           <span style="color:var(--text-muted);">Instruction detail:</span>
           <div style="display:flex; gap:6px;">
@@ -268,13 +335,11 @@
           </div>
         </div>
 
-        <!-- Secret Redaction Security Banner -->
         <div class="redaction-banner" id="redaction-notice">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/></svg>
-          <span>Redacted by default: Passwords, API keys, and environment secrets are never included.</span>
+          <span>Redacted by default: Passwords, API keys, and environment secrets are excluded.</span>
         </div>
 
-        <!-- Prompt Textarea -->
         <textarea id="prompt-output" class="prompt-code-area" readonly spellcheck="false"></textarea>
       </div>
 
@@ -308,9 +373,7 @@
       </div>
 
       <div class="modal-body">
-        <div id="fix-preview-list" style="margin-bottom:16px;">
-          <!-- Loaded dynamically -->
-        </div>
+        <div id="fix-preview-list" style="margin-bottom:16px;"></div>
 
         <div class="redaction-banner" style="background-color:var(--surface-subtle); color:var(--text-main); border-color:var(--border);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -329,7 +392,7 @@
 
 
   <!-- ====================================================================
-       SCREEN 6: Settings & Local Privacy Modal
+       SCREEN 6: Settings & Privacy Modal
        ==================================================================== -->
   <div class="modal-backdrop" id="modal-settings" onclick="closeAllModals(event)">
     <div class="modal-window" onclick="event.stopPropagation()">
@@ -392,24 +455,24 @@
         <div style="display:flex; gap:12px; align-items:flex-start;">
           <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">1</div>
           <div>
-            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Drop in any software target</div>
-            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Drag a project folder, pictures, code files, or paste a live website URL. OptiForge automatically detects the language and components.</p>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Select any local project</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Click "Choose Folder" to open the native Windows Explorer dialog. No browser upload prompts.</p>
           </div>
         </div>
 
         <div style="display:flex; gap:12px; align-items:flex-start;">
           <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">2</div>
           <div>
-            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Review your plain-English health report</div>
-            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">See total space you can reclaim, speed improvements, and prioritized findings grouped into Quick wins and Worth doing.</p>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Real, measured diagnostics</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Every metric is clearly labeled as Measured or Estimated with documented formulas. Never made-up numbers.</p>
           </div>
         </div>
 
         <div style="display:flex; gap:12px; align-items:flex-start;">
           <div style="width:26px; height:26px; border-radius:50%; background-color:var(--surface-subtle); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:600; font-size:12px; flex-shrink:0;">3</div>
           <div>
-            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Fix it safely or hand off to an AI agent</div>
-            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Let OptiForge automatically fix safe items with instant 1-click rollback, or copy a ready-to-paste prompt with your secrets automatically redacted.</p>
+            <div style="font-size:13.5px; font-weight:600; color:var(--text-main);">Fix safely or hand off to an AI agent</div>
+            <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">Auto-fix safe items with 1-click rollback, or copy a ready-to-paste prompt with your secrets automatically redacted.</p>
           </div>
         </div>
       </div>

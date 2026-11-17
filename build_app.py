@@ -125,10 +125,13 @@ def build():
     dashboard_dir = root / "optiforge" / "dashboard"
     config_file = root / "optiforge.yaml"
 
+    sample_dir = root / "sample_bloated_project"
+
     add_data_args = [
         f"--add-data={static_dir}{os.pathsep}optiforge/app/static",
         f"--add-data={dashboard_dir}{os.pathsep}optiforge/dashboard",
         f"--add-data={config_file}{os.pathsep}optiforge",
+        f"--add-data={sample_dir}{os.pathsep}sample_bloated_project",
     ]
 
     conda_dll_args = collect_conda_dlls()

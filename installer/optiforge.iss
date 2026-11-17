@@ -15,7 +15,6 @@ AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-; Allow per-user install without administrator privileges
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DisableProgramGroupPage=yes
@@ -32,14 +31,22 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "contextmenu"; Description: "Add 'Analyze with OptiForge' to Windows Explorer right-click menu"; GroupDescription: "Windows Integration:"; Flags: unchecked
 
 [Files]
 Source: "..\dist\OptiForgeApp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\optiforge.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\sample_bloated_project\*"; DestDir: "{app}\sample_bloated_project"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\optiforge.ico"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\optiforge.ico"
+
+[Registry]
+; Optional Explorer right-click context menu (off by default, cleanly uninstalled)
+Root: HKCU; Subkey: "Software\Classes\Directory\shell\OptiForge"; ValueType: string; ValueData: "Analyze with OptiForge"; Flags: uninsdeletekey; Tasks: contextmenu
+Root: HKCU; Subkey: "Software\Classes\Directory\shell\OptiForge"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\optiforge.ico"""; Flags: uninsdeletekey; Tasks: contextmenu
+Root: HKCU; Subkey: "Software\Classes\Directory\shell\OptiForge\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey; Tasks: contextmenu
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
@@ -55,23 +62,24 @@ var
   Installed: Cardinal;
 begin
   Result := False;
-  // Check 64-bit and 32-bit registry keys for WebView2
   if RegQueryDWordValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Installed) or
      RegQueryDWordValue(HKEY_CURRENT_USER, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Installed) or
-     RegKeyExists(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}') then
+     RegQueryDWordValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv', Installed) then
   begin
     Result := True;
   end;
 end;
 
-procedure CurStepChanged(CurStep: TSetupStep);
+function InitializeSetup(): Boolean;
 begin
-  if CurStep = ssPostInstall then
+  Result := True;
+  if not IsWebView2Installed() then
   begin
-    // If WebView2 is not detected, inform user that browser fallback is available
-    if not IsWebView2Installed() then
+    if MsgBox('Microsoft Edge WebView2 Runtime was not detected on this machine.' + #13#10 + #13#10 +
+              'OptiForge uses WebView2 to render its desktop interface. If not present, the app will run inside your default web browser.' + #13#10 + #13#10 +
+              'Would you like to continue installation anyway?', mbConfirmation, MB_YESNO) = IDNO then
     begin
-      Log('WebView2 runtime not detected; OptiForge will use default web browser automatically.');
+      Result := False;
     end;
   end;
 end;

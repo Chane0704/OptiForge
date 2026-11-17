@@ -1,4 +1,8 @@
-"""Desktop Application Launcher and Reliability Supervisor for OptiForge."""
+"""Desktop Application Launcher and Reliability Supervisor for OptiForge.
+
+Handles single-instance mutex, native Win32 window icon binding,
+custom AppUserModelID, persistent logging, and WebView2 runtime supervision.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +13,21 @@ import socket
 import sys
 import threading
 import time
+import urllib.parse
 import webbrowser
 from pathlib import Path
 from typing import Optional
 
+# Explicit Windows AppUserModelID so taskbar groups properly with the new icon
+APP_ID = "OptiForge.UniversalOptimizer.App.1.0"
+if os.name == "nt":
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+    except Exception:
+        pass
+
 APP_NAME = "OptiForge"
+WINDOW_TITLE = "OptiForge — Universal Performance & Efficiency"
 MUTEX_NAME = "OptiForgeApp_SingleInstance_Mutex_Chane0704"
 
 # Global mutex handle to prevent garbage collection
@@ -69,7 +83,6 @@ def check_single_instance() -> bool:
     global _mutex_handle
     if os.name == "nt":
         try:
-            # Create or open named Windows mutex
             _mutex_handle = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
             last_error = ctypes.windll.kernel32.GetLastError()
             # ERROR_ALREADY_EXISTS = 183
@@ -114,7 +127,56 @@ def find_free_port(start_port: int = 8849) -> int:
     return start_port
 
 
-def launch_app(port: Optional[int] = None, no_window: bool = False):
+def get_icon_path() -> Path:
+    """Locates the application .ico file across frozen and source modes."""
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).parent
+        for cand in [
+            exe_dir / "optiforge.ico",
+            exe_dir / "_internal" / "optiforge.ico",
+            exe_dir / "_internal" / "optiforge" / "app" / "static" / "optiforge.ico",
+        ]:
+            if cand.exists():
+                return cand
+    src_icon = Path(__file__).resolve().parent.parent.parent / "optiforge.ico"
+    return src_icon
+
+
+def apply_win32_window_icon(window_title: str, icon_file: Path):
+    """Binds native Win32 icon directly to pywebview HWND using WM_SETICON."""
+    if os.name != "nt" or not icon_file.exists():
+        return
+
+    WM_SETICON = 0x0080
+    ICON_SMALL = 0
+    ICON_BIG = 1
+    IMAGE_ICON = 1
+    LR_LOADFROMFILE = 0x00000010
+
+    # Poll briefly for window creation to capture the HWND
+    for _ in range(30):
+        time.sleep(0.15)
+        hwnd = ctypes.windll.user32.FindWindowW(None, window_title)
+        if hwnd:
+            try:
+                h_icon_big = ctypes.windll.user32.LoadImageW(
+                    0, str(icon_file), IMAGE_ICON, 32, 32, LR_LOADFROMFILE
+                )
+                h_icon_small = ctypes.windll.user32.LoadImageW(
+                    0, str(icon_file), IMAGE_ICON, 16, 16, LR_LOADFROMFILE
+                )
+                if h_icon_big:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, h_icon_big)
+                if h_icon_small:
+                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, h_icon_small)
+                logging.info(f"Applied native Win32 window icon to HWND {hwnd}")
+                return
+            except Exception as e:
+                logging.warning(f"Failed to apply Win32 window icon: {e}")
+                return
+
+
+def launch_app(port: Optional[int] = None, no_window: bool = False, initial_target: Optional[str] = None):
     """Starts the OptiForge desktop application server and native window."""
     log_file = setup_application_logging()
     logging.info("Starting OptiForge Desktop App...")
@@ -157,6 +219,9 @@ def launch_app(port: Optional[int] = None, no_window: bool = False):
     time.sleep(0.3)
 
     app_url = f"http://127.0.0.1:{active_port}"
+    if initial_target:
+        app_url += f"?target={urllib.parse.quote(initial_target)}"
+
     logging.info(f"Local server listening at {app_url}")
 
     if no_window:
@@ -170,19 +235,28 @@ def launch_app(port: Optional[int] = None, no_window: bool = False):
 
     # 5. Launch Native Window (with graceful Browser Fallback)
     native_window_success = False
+    icon_file = get_icon_path()
+
     try:
         import webview
         logging.info("Initializing pywebview native window...")
+
+        # Spawn background thread to apply Win32 window icon once HWND is created
+        threading.Thread(
+            target=apply_win32_window_icon,
+            args=(WINDOW_TITLE, icon_file),
+            daemon=True,
+        ).start()
+
         window = webview.create_window(
-            title="OptiForge — Universal Performance & Efficiency",
+            title=WINDOW_TITLE,
             url=app_url,
-            width=1060,
-            height=780,
-            min_size=(800, 600),
-            background_color="#0b0f19",
+            width=1080,
+            height=790,
+            min_size=(820, 600),
+            background_color="#faf8f5",  # Warm Editorial Alabaster
         )
         session.webview_window = window
-        # Test start
         native_window_success = True
         webview.start()
     except Exception as e:
@@ -196,7 +270,6 @@ def launch_app(port: Optional[int] = None, no_window: bool = False):
         logging.info(f"Opening OptiForge in default browser at {app_url}")
         webbrowser.open(app_url)
         try:
-            # Keep process alive while user uses the browser interface
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -206,14 +279,20 @@ def launch_app(port: Optional[int] = None, no_window: bool = False):
 if __name__ == "__main__":
     no_win = "--no-window" in sys.argv or "--browser" in sys.argv or "--headless" in sys.argv
     port_val = None
+    target_arg = None
+
     for arg in sys.argv[1:]:
         if arg.startswith("--port="):
             try:
                 port_val = int(arg.split("=")[1])
             except ValueError:
                 pass
+        elif not arg.startswith("-") and target_arg is None:
+            target_arg = arg
+
     if "--check-only" in sys.argv:
         healthy, check_msg = startup_self_check()
         print(f"Self-check: {check_msg}")
         sys.exit(0 if healthy else 1)
-    launch_app(port=port_val, no_window=no_win)
+
+    launch_app(port=port_val, no_window=no_win, initial_target=target_arg)

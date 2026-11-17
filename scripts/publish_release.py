@@ -136,11 +136,19 @@ def main():
 
     files_to_upload = [
         ("OptiForge-Setup-1.0.0.exe", "application/vnd.microsoft.portable-executable"),
+        ("OptiForge Setup 1.0.0.exe", "application/vnd.microsoft.portable-executable"),
         ("OptiForge-v1.0.0-windows-x64.zip", "application/zip"),
         ("CHECKSUMS.txt", "text/plain"),
     ]
 
     dist_dir = Path(__file__).resolve().parent.parent / "dist"
+
+    # Ensure space-separated alias exists
+    setup_hyphen = dist_dir / "OptiForge-Setup-1.0.0.exe"
+    setup_space = dist_dir / "OptiForge Setup 1.0.0.exe"
+    if setup_hyphen.exists() and not setup_space.exists():
+        import shutil
+        shutil.copy2(setup_hyphen, setup_space)
 
     for filename, content_type in files_to_upload:
         file_path = dist_dir / filename
@@ -156,7 +164,9 @@ def main():
 
         file_size_mb = file_path.stat().st_size / (1024 * 1024)
         print(f"Uploading {filename} ({file_size_mb:.2f} MB)...")
-        upload_url = f"{base_upload_url}?name={filename}"
+        import urllib.parse
+        encoded_name = urllib.parse.quote(filename)
+        upload_url = f"{base_upload_url}?name={encoded_name}"
 
         with open(file_path, "rb") as f:
             file_bytes = f.read()
