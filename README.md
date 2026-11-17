@@ -1,7 +1,8 @@
 # ⚡ OptiForge: Universal Performance & Efficiency Optimizer
 
 [![GitHub Release](https://img.shields.io/github/v/release/Chane0704/OptiForge?style=for-the-badge&logo=github&color=38bdf8)](https://github.com/Chane0704/OptiForge/releases)
-[![Download Windows App](https://img.shields.io/badge/Download-Windows%20Executable%20(.exe)-brightgreen?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v0.1.0/OptiForgeApp.exe)
+[![Download Windows Installer](https://img.shields.io/badge/Download-Windows%20Setup%20(.exe)-brightgreen?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-Setup-1.0.0.exe)
+[![Download Portable Zip](https://img.shields.io/badge/Download-Portable%20(.zip)-blue?logo=windows&style=for-the-badge)](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-v1.0.0-windows-x64.zip)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
 [![Tests Passing](https://img.shields.io/badge/Tests-35%20Passed-success?style=for-the-badge)](https://github.com/Chane0704/OptiForge)
 
@@ -9,13 +10,14 @@
 
 ---
 
-## 📥 Direct Downloads
+## 📥 Direct Downloads & Installation
 
-| User Type | Download / Install Link | Notes |
-| :--- | :--- | :--- |
-| **Non-Technical Users** | [**Download OptiForgeApp.exe (v0.1.0)**](https://github.com/Chane0704/OptiForge/releases/download/v0.1.0/OptiForgeApp.exe) | Single-click desktop application. **No Python or terminal required!** |
-| **Developers & Engineers** | `pip install git+https://github.com/Chane0704/OptiForge.git` | Full CLI suite (`optiforge analyze`, `optiforge fix`, `optiforge serve`). |
-| **GitHub Releases Page** | [**Browse All Releases & Assets**](https://github.com/Chane0704/OptiForge/releases) | Source code packages (`.zip`, `.tar.gz`) and executables. |
+| Package | Format | Compatibility | Size | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Windows Installer** | [**OptiForge-Setup-1.0.0.exe**](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-Setup-1.0.0.exe) | Windows 10/11 (x64) | ~25 MB | Recommended. Per-user install, Start Menu & Desktop shortcuts, clean uninstaller. No admin or Python needed. |
+| **Portable Package** | [**OptiForge-v1.0.0-windows-x64.zip**](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/OptiForge-v1.0.0-windows-x64.zip) | Windows 10/11 (x64) | ~33 MB | No installation needed. Extract and run `OptiForgeApp.exe`. |
+| **Python CLI Engine** | `pip install git+https://github.com/Chane0704/OptiForge.git` | Windows, macOS, Linux | Source | Full developer CLI suite (`optiforge analyze`, `fix`, `serve`). |
+| **Integrity & Checksums** | [**CHECKSUMS.txt**](https://github.com/Chane0704/OptiForge/releases/download/v1.0.0/CHECKSUMS.txt) | All | Plaintext | SHA-256 hashes to verify downloads. See [Installation Guide](docs/INSTALL.md). |
 
 ---
 
@@ -276,7 +278,9 @@ OptiForge is thoroughly covered by unit and integration tests:
 pytest -v
 ```
 
-All 23 test suites verify:
+All 35 tests verify:
+- Desktop app service layer, input autodetection, and REST APIs
+- AI prompt generation with automatic secret stripping
 - System profiler and memory leak detection
 - Local and remote website auditing
 - Image re-encoding and code minification

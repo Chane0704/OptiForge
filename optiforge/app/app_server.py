@@ -18,10 +18,38 @@ from optiforge.services.analysis_service import AnalysisService, FriendlyAnalysi
 from optiforge.services.input_detector import DetectedInput, InputDetector
 from optiforge.services.prompt_service import PromptService
 
+import sys
+
 logger = logging.getLogger("optiforge.app_server")
 
 app = bottle.Bottle()
-STATIC_DIR = Path(__file__).parent / "static"
+
+
+def get_static_dir() -> Path:
+    """Resolves the static files directory across source, frozen onedir, and onefile modes."""
+    # 1. PyInstaller _MEIPASS (onefile mode)
+    if hasattr(sys, "_MEIPASS"):
+        meipass_p = Path(sys._MEIPASS) / "optiforge" / "app" / "static"
+        if meipass_p.exists():
+            return meipass_p
+
+    # 2. PyInstaller onedir mode (next to executable or inside optiforge/app/static)
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).parent
+        for cand in [
+            exe_dir / "optiforge" / "app" / "static",
+            exe_dir / "static",
+            exe_dir / "_internal" / "optiforge" / "app" / "static",
+        ]:
+            if cand.exists():
+                return cand
+
+    # 3. Development / source mode
+    dev_path = Path(__file__).resolve().parent / "static"
+    return dev_path
+
+
+STATIC_DIR = get_static_dir()
 
 # In-memory session state for active UI session
 class AppSession:
@@ -37,6 +65,11 @@ session = AppSession()
 @app.route("/")
 def index():
     return bottle.static_file("index.html", root=str(STATIC_DIR))
+
+
+@app.route("/api/health")
+def api_health():
+    return {"status": "ok", "version": "1.0.0"}
 
 
 @app.route("/static/<filepath:path>")
