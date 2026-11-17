@@ -176,15 +176,53 @@ def apply_win32_window_icon(window_title: str, icon_file: Path):
                 return
 
 
+def bring_existing_window_to_front() -> bool:
+    """Finds the already-running OptiForge desktop window, unminimizes it if needed, and brings it to the foreground."""
+    if os.name != "nt":
+        return False
+    try:
+        # First try exact match on WINDOW_TITLE
+        hwnd = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
+
+        if not hwnd:
+            # Enumerate top-level windows to find any window whose title starts with "OptiForge"
+            EnumWindows = ctypes.windll.user32.EnumWindows
+            EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+            found_hwnd = None
+
+            def _enum_cb(h, lparam):
+                nonlocal found_hwnd
+                length = ctypes.windll.user32.GetWindowTextLengthW(h)
+                if length > 0:
+                    buf = ctypes.create_unicode_buffer(length + 1)
+                    ctypes.windll.user32.GetWindowTextW(h, buf, length + 1)
+                    if buf.value.startswith(APP_NAME):
+                        found_hwnd = h
+                        return False
+                return True
+
+            EnumWindows(EnumWindowsProc(_enum_cb), 0)
+            hwnd = found_hwnd
+
+        if hwnd:
+            # SW_RESTORE = 9 (restores window if minimized)
+            ctypes.windll.user32.ShowWindowAsync(hwnd, 9)
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+            return True
+    except Exception as e:
+        logging.warning(f"Could not bring window to foreground: {e}")
+    return False
+
+
 def launch_app(port: Optional[int] = None, no_window: bool = False, initial_target: Optional[str] = None):
     """Starts the OptiForge desktop application server and native window."""
     log_file = setup_application_logging()
     logging.info("Starting OptiForge Desktop App...")
 
-    # 1. Single Instance Check
+    # 1. Single Instance Check: Never open a browser tab. Focus the existing app window!
     if not check_single_instance():
-        logging.info("Another instance is already running. Opening existing interface.")
-        webbrowser.open("http://127.0.0.1:8849")
+        logging.info("Another instance is already running. Bringing existing desktop window to foreground.")
+        bring_existing_window_to_front()
         return
 
     # 2. Startup Self-Check
@@ -261,12 +299,17 @@ def launch_app(port: Optional[int] = None, no_window: bool = False, initial_targ
         webview.start()
     except Exception as e:
         logging.warning(
-            f"Native desktop window (WebView2) could not start ({e}). Falling back to default web browser."
+            f"Native desktop window (WebView2) could not start ({e})."
         )
         native_window_success = False
+        if not no_window:
+            show_friendly_error(
+                "OptiForge - Window Error",
+                f"Could not initialize desktop application window:\n\n{e}\n\nPlease check logs at: {log_file}"
+            )
 
-    # Browser Fallback if native window failed or could not initialize
-    if not native_window_success:
+    # Fallback to browser ONLY if user explicitly passed --browser or --no-window
+    if not native_window_success and no_window:
         logging.info(f"Opening OptiForge in default browser at {app_url}")
         webbrowser.open(app_url)
         try:
