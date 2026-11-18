@@ -217,7 +217,7 @@ def apply_update() -> Dict[str, Any]:
     # /CLOSEAPPLICATIONS: Gracefully closes running instances using files to be updated.
     # /RESTARTAPPLICATIONS: Restarts the updated app immediately after installation!
     # /NORESTART: Does not reboot computer.
-    args = [installer_file, "/SILENT", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/NORESTART"]
+    args = [installer_file, "/SILENT", "/CLOSEAPPLICATIONS", "/FORCECLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS", "/NORESTART"]
 
     try:
         # Launch detached from current process tree

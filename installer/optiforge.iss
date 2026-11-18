@@ -25,6 +25,7 @@ UninstallDisplayIcon={app}\optiforge.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+CloseApplications=force
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -34,8 +35,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "contextmenu"; Description: "Add 'Analyze with OptiForge' to Windows Explorer right-click menu"; GroupDescription: "Windows Integration:"; Flags: unchecked
 
 [Files]
-Source: "..\dist\OptiForgeApp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\optiforge.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\OptiForgeApp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs restartreplace
+Source: "..\optiforge.ico"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "..\sample_bloated_project\*"; DestDir: "{app}\sample_bloated_project"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
