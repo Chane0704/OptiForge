@@ -225,78 +225,14 @@ class WasteFinderPlugin(AnalyzerPlugin):
         return findings
 
     def _find_unused_python_deps(self, root_path: Path, config: OptiConfig) -> List[Finding]:
-        """Parses requirements.txt and AST-scans Python source files for unused packages."""
-        findings: List[Finding] = []
-        req_file = root_path / "requirements.txt"
-        if not req_file.exists():
-            return findings
-
+        """Parses requirements.txt / pyproject.toml and AST-scans Python source files for unused packages."""
         try:
-            declared_pkgs = []
-            for line in req_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    # Extract package name before operators (==, >=, <=, ~=, <, >)
-                    pkg_name = re.split(r"[><=~;]", line)[0].strip().lower()
-                    if pkg_name and pkg_name not in config.ignore.packages:
-                        declared_pkgs.append(pkg_name)
-
-            if not declared_pkgs:
-                return findings
-
-            # AST parse all .py files to extract imported module roots
-            imported_modules = set()
-            for dirpath, dirnames, filenames in os.walk(root_path):
-                rel_dir = os.path.relpath(dirpath, root_path)
-                if config.is_path_ignored(rel_dir):
-                    dirnames[:] = []
-                    continue
-
-                for f in filenames:
-                    if f.endswith(".py"):
-                        full_p = Path(dirpath) / f
-                        try:
-                            code = full_p.read_text(encoding="utf-8", errors="ignore")
-                            tree = ast.parse(code, filename=str(full_p))
-                            for node in ast.walk(tree):
-                                if isinstance(node, ast.Import):
-                                    for alias in node.names:
-                                        imported_modules.add(alias.name.split(".")[0].lower())
-                                elif isinstance(node, ast.ImportFrom):
-                                    if node.module:
-                                        imported_modules.add(node.module.split(".")[0].lower())
-                        except Exception:
-                            continue
-
-            # Match declared packages against imported modules
-            for pkg in declared_pkgs:
-                norm_mod = self.COMMON_PY_MODULE_MAPPINGS.get(pkg, pkg).lower()
-                norm_mod_alt = pkg.replace("-", "_").lower()
-
-                if norm_mod not in imported_modules and norm_mod_alt not in imported_modules and pkg not in imported_modules:
-                    findings.append(Finding(
-                        id=f"OPT-DEP-PY-{abs(hash(pkg)) % 10000:04d}",
-                        category=Category.UNUSED_DEPENDENCY,
-                        title=f"Unused Python Dependency: '{pkg}'",
-                        description=(
-                            f"Package '{pkg}' is declared in requirements.txt, but no corresponding module import "
-                            "was detected in any Python file across the codebase. "
-                            "Removing unneeded dependencies speeds up container builds and virtualenv setups."
-                        ),
-                        impact=Impact.MEDIUM,
-                        effort=Effort.TRIVIAL,
-                        confidence=Confidence.LIKELY,
-                        target_entity=pkg,
-                        target_path=req_file,
-                        metrics={"package": pkg, "manifest": "requirements.txt"},
-                        exact_fix=f"Remove '{pkg}' from requirements.txt and run 'pip uninstall {pkg}'.",
-                        plugin_name=self.name,
-                    ))
-
+            from optiforge.analysis.python_deps import PythonDependencyAuditor
+            auditor = PythonDependencyAuditor(root_path, config)
+            return auditor.audit()
         except Exception as e:
-            logger.debug(f"Failed to analyze requirements.txt: {e}")
-
-        return findings
+            logger.debug(f"Failed to audit Python dependencies: {e}")
+            return []
 
     def _find_dead_code_python(self, root_path: Path, config: OptiConfig) -> List[Finding]:
         """Uses AST to find unused internal functions and dead branches in Python files."""
@@ -558,5 +494,68 @@ class WasteFinderPlugin(AnalyzerPlugin):
                     preview_diff=f"Move '{finding.target_path}' -> .optiforge/quarantine/<timestamp>/{finding.target_path.name}",
                     estimated_savings_bytes=fsize,
                 ))
+
+            # Unused Python dependency fix: only auto-remove when detection_confidence == "high"
+            elif finding.category == Category.UNUSED_DEPENDENCY and finding.target_path.exists():
+                if finding.detection_confidence != "high":
+                    continue
+
+                if finding.target_path.name == "requirements.txt":
+                    try:
+                        content = finding.target_path.read_text(encoding="utf-8")
+                        lines = content.splitlines()
+                        new_lines = []
+                        removed_line = ""
+                        for idx, l in enumerate(lines, start=1):
+                            if finding.line_start and idx == finding.line_start:
+                                removed_line = l
+                                continue
+                            elif not finding.line_start and re.match(rf"^{re.escape(finding.target_entity)}([><=~;\[\s]|$)", l.strip(), re.IGNORECASE):
+                                removed_line = l
+                                continue
+                            new_lines.append(l)
+
+                        if removed_line:
+                            new_content = "\n".join(new_lines) + ("\n" if content.endswith("\n") else "")
+                            proposals.append(FixProposal(
+                                finding_id=finding.id,
+                                action_type="modify_file",
+                                target_path=finding.target_path,
+                                description=f"Remove unused dependency '{finding.target_entity}' from {finding.target_path.name}",
+                                preview_diff=f"- {removed_line}\n",
+                                replacement_content=new_content,
+                                estimated_savings_bytes=len(removed_line.encode("utf-8")),
+                            ))
+                    except Exception as e:
+                        logger.debug(f"Failed to propose fix for unused dependency {finding.target_entity}: {e}")
+
+                elif finding.target_path.name == "pyproject.toml":
+                    try:
+                        content = finding.target_path.read_text(encoding="utf-8")
+                        lines = content.splitlines()
+                        new_lines = []
+                        removed_line = ""
+                        for idx, l in enumerate(lines, start=1):
+                            if finding.line_start and idx == finding.line_start:
+                                removed_line = l
+                                continue
+                            elif not finding.line_start and finding.target_entity in l.lower():
+                                removed_line = l
+                                continue
+                            new_lines.append(l)
+
+                        if removed_line:
+                            new_content = "\n".join(new_lines) + ("\n" if content.endswith("\n") else "")
+                            proposals.append(FixProposal(
+                                finding_id=finding.id,
+                                action_type="modify_file",
+                                target_path=finding.target_path,
+                                description=f"Remove unused dependency '{finding.target_entity}' from {finding.target_path.name}",
+                                preview_diff=f"- {removed_line}\n",
+                                replacement_content=new_content,
+                                estimated_savings_bytes=len(removed_line.encode("utf-8")),
+                            ))
+                    except Exception as e:
+                        logger.debug(f"Failed to propose fix for unused dependency {finding.target_entity} in pyproject.toml: {e}")
 
         return proposals

@@ -1,0 +1,12 @@
+# Core production dependencies
+python-dotenv==1.0.1
+google-genai==0.1.0
+pyyaml>=6.0
+pillow>=10.0.0
+requests[socks]>=2.28.0
+typing-extensions>=4.5.0
+gunicorn==21.2.0
+pytest>=8.0.0
+
+# Genuinely unused dead package
+unreferenced-zero-usage-pkg==1.0.0

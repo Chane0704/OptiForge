@@ -39,6 +39,8 @@ class FriendlyFinding:
     target_entity: str = ""
     file_path: str = ""
     line_number: Optional[int] = None
+    detection_confidence: str = "high"  # "high" | "medium" | "low"
+    evidence: str = ""
     raw_finding: Optional[Finding] = None
     advanced_details: Dict[str, Any] = field(default_factory=dict)
 
@@ -61,6 +63,8 @@ class FriendlyFinding:
             "target_entity": self.target_entity,
             "file_path": self.file_path,
             "line_number": self.line_number,
+            "detection_confidence": self.detection_confidence,
+            "evidence": self.evidence,
             "category": category_val,
             "impact": impact_val,
             "effort": effort_val,
@@ -349,7 +353,9 @@ class AnalysisService:
             group="optional",
             target_entity=f.target_entity,
             file_path=file_path_str,
-            line_number=line_num,
+            line_number=line_num or f.line_start,
+            detection_confidence=f.detection_confidence,
+            evidence=f.evidence,
             raw_finding=f,
             advanced_details={"finding_id": f.id, **f.metrics},
         )

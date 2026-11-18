@@ -34,8 +34,9 @@ def cli():
 
 @cli.command("analyze")
 @click.argument("target_input", required=False, default=".")
-@click.option("-c", "--config", "config_file", type=click.Path(exists=True), help="Path to optiforge.yaml")
+@click.option("-c", "--config", "config_file", type=click.Path(exists=True), help="Path to optiforge.yaml or .optiforge.toml")
 @click.option("-d", "--duration", type=float, default=None, help="Process/System sampling duration in seconds")
+@click.option("-f", "--format", "output_format", type=click.Choice(["rich", "json", "text"], case_sensitive=False), default="rich", help="Output format: rich (default UI) or json (machine-readable schema)")
 @click.option("--export-json", type=click.Path(), help="Export findings to a JSON file")
 @click.option("--export-md", type=click.Path(), help="Export findings to a Markdown file")
 @click.option("--export-html", type=click.Path(), help="Export findings to a standalone interactive HTML dashboard")
@@ -44,12 +45,14 @@ def analyze(
     target_input: str,
     config_file: Optional[str],
     duration: Optional[float],
+    output_format: str,
     export_json: Optional[str],
     export_md: Optional[str],
     export_html: Optional[str],
     verbose: bool,
 ):
     """Analyze a software target (website URL, process ID/name, codebase directory, or 'system')."""
+    import json
     config = OptiConfig.load(config_path=config_file)
     if duration is not None:
         if "system_profiler" not in config.plugins:
@@ -59,13 +62,38 @@ def analyze(
     from optiforge.services.input_detector import InputDetector
     detected = InputDetector.detect(target_input)
     target = detected.target
-    print_banner(target, dry_run=True)
 
-    with console.status(f"[cyan]Analyzing target '{target.identifier}' with active plugins...[/cyan]", spinner="dots"):
+    is_json = output_format.lower() == "json"
+
+    if not is_json:
+        print_banner(target, dry_run=True)
+        with console.status(f"[cyan]Analyzing target '{target.identifier}' with active plugins...[/cyan]", spinner="dots"):
+            findings, telemetry = registry.analyze_target(target, config)
+    else:
         findings, telemetry = registry.analyze_target(target, config)
 
-    print_findings_summary(findings)
-    print_recommendations_matrix(findings)
+    # Machine-readable output for Gatekeeper and automated tools
+    if is_json:
+        machine_findings = [
+            {
+                "id": f.id,
+                "type": f.category.value,
+                "file": str(f.target_path) if f.target_path else "",
+                "line_start": f.line_start or 1,
+                "line_end": f.line_end or 1,
+                "message": f.title,
+                "description": f.description,
+                "confidence": f.confidence.value,
+                "detection_confidence": f.detection_confidence,
+                "evidence": f.evidence or f.description,
+                "exact_fix": f.exact_fix or "",
+            }
+            for f in findings
+        ]
+        click.echo(json.dumps(machine_findings, indent=2))
+    else:
+        print_findings_summary(findings)
+        print_recommendations_matrix(findings)
 
     # Optional exports
     if export_json:

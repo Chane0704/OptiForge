@@ -48,11 +48,19 @@ class IgnoreConfig:
 
 
 @dataclass
+class DependenciesConfig:
+    ignore: List[str] = field(default_factory=list)
+    aliases: Dict[str, Any] = field(default_factory=dict)
+    tools: List[str] = field(default_factory=list)
+
+
+@dataclass
 class OptiConfig:
     version: str = "1.0"
     general: GeneralConfig = field(default_factory=GeneralConfig)
     thresholds: ThresholdsConfig = field(default_factory=ThresholdsConfig)
     ignore: IgnoreConfig = field(default_factory=IgnoreConfig)
+    dependencies: DependenciesConfig = field(default_factory=DependenciesConfig)
     plugins: Dict[str, Any] = field(default_factory=dict)
     project_root: Path = field(default_factory=lambda: Path.cwd())
 
@@ -66,9 +74,14 @@ class OptiConfig:
             if candidate.exists():
                 resolved_path = candidate
         else:
-            for fname in ["optiforge.yaml", "optiforge.yml", ".optiforge.yaml", ".optiforge.yml"]:
+            candidates = [
+                ".optiforge.toml", "optiforge.toml",
+                "optiforge.yaml", "optiforge.yml", ".optiforge.yaml", ".optiforge.yml",
+                "pyproject.toml"
+            ]
+            for fname in candidates:
                 candidate = root / fname
-                if candidate.exists():
+                if candidate.exists() and candidate.is_file():
                     resolved_path = candidate
                     break
 
@@ -77,13 +90,38 @@ class OptiConfig:
             return config
 
         try:
-            with open(resolved_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
+            raw_text = resolved_path.read_text(encoding="utf-8")
+            data = {}
+
+            if resolved_path.suffix.lower() == ".toml":
+                try:
+                    import tomllib
+                except ImportError:
+                    try:
+                        import tomli as tomllib
+                    except ImportError:
+                        tomllib = None
+
+                if tomllib:
+                    parsed = tomllib.loads(raw_text)
+                    if resolved_path.name == "pyproject.toml":
+                        data = parsed.get("tool", {}).get("optiforge", {})
+                    else:
+                        data = parsed
+            else:
+                data = yaml.safe_load(raw_text) or {}
 
             gen_data = data.get("general", {})
             thresh_data = data.get("thresholds", {})
             ignore_data = data.get("ignore", {})
             plugins_data = data.get("plugins", {})
+            deps_data = data.get("dependencies", {})
+
+            # Consolidate ignore packages from ignore.packages and dependencies.ignore
+            combined_ignore_pkgs = list(ignore_data.get("packages", ["wheel", "setuptools", "pip"]))
+            for p in deps_data.get("ignore", []):
+                if p not in combined_ignore_pkgs:
+                    combined_ignore_pkgs.append(p)
 
             return cls(
                 version=str(data.get("version", "1.0")),
@@ -106,7 +144,12 @@ class OptiConfig:
                         "node_modules/**", ".git/**", "venv/**", ".venv/**",
                         "__pycache__/**", "dist/**", "build/**", ".optiforge/**"
                     ])),
-                    packages=list(ignore_data.get("packages", ["wheel", "setuptools", "pip"])),
+                    packages=combined_ignore_pkgs,
+                ),
+                dependencies=DependenciesConfig(
+                    ignore=list(deps_data.get("ignore", [])),
+                    aliases=dict(deps_data.get("aliases", {})),
+                    tools=list(deps_data.get("tools", [])),
                 ),
                 plugins=plugins_data,
                 project_root=root,

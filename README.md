@@ -156,6 +156,9 @@ Click **"🤖 Copy prompt for my AI agent"** on any finding or for the entire re
 # Analyze a codebase (current directory)
 optiforge analyze .
 
+# Machine-readable JSON output for Gatekeeper and CI/CD agents
+optiforge analyze . --format json
+
 # Analyze a local project and export reports
 optiforge analyze ./sample_bloated_project --export-md report.md --export-json report.json --export-html dashboard.html
 
@@ -168,6 +171,43 @@ optiforge analyze system
 # Audit a live website
 optiforge analyze https://example.com
 ```
+
+### 2. Machine-Readable Gatekeeper JSON Output Schema (`--format json`)
+
+When invoked with `--format json`, OptiForge emits a clean, machine-parseable JSON array of findings designed for consumption by multi-agent code reviewers such as **Gatekeeper**:
+
+```json
+[
+  {
+    "id": "OPT-DEP-PY-1234",
+    "type": "Unused Dependency",
+    "file": "requirements.txt",
+    "line_start": 12,
+    "line_end": 12,
+    "message": "Unused Python Dependency: 'unreferenced-zero-usage-pkg'",
+    "description": "Package 'unreferenced-zero-usage-pkg' is declared in requirements.txt, but no corresponding module import...",
+    "confidence": "Safe",
+    "detection_confidence": "high",
+    "evidence": "Declared in requirements.txt line 12; zero AST imports, dynamic imports, or configuration references found across 3 Python files.",
+    "exact_fix": "Remove 'unreferenced-zero-usage-pkg' from requirements.txt and run 'pip uninstall unreferenced-zero-usage-pkg'."
+  }
+]
+```
+
+#### Schema Fields:
+| Field | Type | Description |
+|---|---|---|
+| `id` | `string` | Unique finding identifier (e.g. `OPT-DEP-PY-1234`) |
+| `type` | `string` | Category classification (`Unused Dependency`, `Duplicate File`, `Asset Bloat`, etc.) |
+| `file` | `string` | Relative or absolute path to the target file |
+| `line_start` | `integer` | 1-indexed start line of the detected inefficiency |
+| `line_end` | `integer` | 1-indexed end line of the detected inefficiency |
+| `message` | `string` | Short human-readable summary of the finding |
+| `description` | `string` | Detailed impact and explanation |
+| `confidence` | `string` | **Fix Safety Confidence** (`Safe`, `Likely`, `Risky`) |
+| `detection_confidence` | `string` | **Detection Confidence** (`high`, `medium`, `low`). Only `high` is candidate for auto-fix. |
+| `evidence` | `string` | Clear explanation of the detection evidence (files parsed, config checked, AST results) |
+| `exact_fix` | `string` | Concrete actionable remediation instruction |
 
 ### 2. Preview and Apply Optimizations (Safe Mode)
 
@@ -208,9 +248,30 @@ optiforge plugins
 
 ---
 
-## ⚙️ Configuration (`optiforge.yaml`)
+## ⚙️ Configuration (`optiforge.yaml` / `.optiforge.toml` / `pyproject.toml`)
 
-Customize thresholds, safety parameters, and ignore patterns in `optiforge.yaml`:
+OptiForge supports configuration via `optiforge.yaml`, `.optiforge.toml`, or directly within `pyproject.toml` under `[tool.optiforge]`.
+
+### TOML Configuration (`.optiforge.toml` or `pyproject.toml`)
+
+```toml
+[tool.optiforge]
+general.safety_level = "safe"
+general.default_dry_run = true
+
+[tool.optiforge.ignore]
+paths = ["node_modules/**", ".git/**", "venv/**", ".optiforge/**"]
+packages = ["pip", "setuptools"]
+
+[tool.optiforge.dependencies]
+# Custom package-to-import module mappings
+aliases = { "my-internal-pkg" = ["internal_mod"], "custom-sdk" = ["sdk"] }
+
+# Known CLI tools / test runners / commands that should not be flagged as unused
+tools = ["pytest", "black", "ruff", "mypy", "gunicorn", "uvicorn", "celery"]
+```
+
+### YAML Configuration (`optiforge.yaml`)
 
 ```yaml
 version: "1.0"
@@ -238,6 +299,13 @@ ignore:
   packages:
     - "pip"
     - "setuptools"
+
+dependencies:
+  aliases:
+    my-internal-pkg: ["internal_mod"]
+  tools:
+    - "pytest"
+    - "gunicorn"
 ```
 
 ---
@@ -278,7 +346,10 @@ OptiForge is thoroughly covered by unit and integration tests:
 pytest -v
 ```
 
-All 35 tests verify:
+All 51 tests verify:
+- Zero-false-positive Python dependency resolution via `importlib.metadata` + AST parsing + namespace package matching
+- Developer/CLI tools detection across Dockerfiles, Makefiles, CI workflows, and configs
+- Gatekeeper machine-readable JSON schema output (`--format json`) with honest detection confidence
 - Desktop app service layer, input autodetection, and REST APIs
 - AI prompt generation with automatic secret stripping
 - System profiler and memory leak detection

@@ -52,6 +52,10 @@ class Finding:
     impact: Impact
     effort: Effort
     confidence: Confidence
+    detection_confidence: str = "high"  # high | medium | low
+    evidence: str = ""
+    line_start: Optional[int] = None
+    line_end: Optional[int] = None
     target_entity: str = ""
     target_path: Optional[Path] = None
     metrics: Dict[str, Any] = field(default_factory=dict)
@@ -68,6 +72,10 @@ class Finding:
             "impact": self.impact.value,
             "effort": self.effort.value,
             "confidence": self.confidence.value,
+            "detection_confidence": self.detection_confidence,
+            "evidence": self.evidence,
+            "line_start": self.line_start,
+            "line_end": self.line_end,
             "target_entity": self.target_entity,
             "target_path": str(self.target_path) if self.target_path else None,
             "metrics": self.metrics,
